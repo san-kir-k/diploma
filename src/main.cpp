@@ -21,6 +21,9 @@
 #include <bitset>
 #include <iomanip>
 #include <filesystem>
+#include <stack>
+#include <limits>
+#include <deque>
 
 namespace fs = std::filesystem;
 
@@ -71,38 +74,69 @@ public:
         , m_completedRows()
         , m_foundMatrices()
         , m_printer(order)
+        , m_bucketHistory()
+        , m_maxVal(0)
     {
         assert(m_order <= 64 && m_order >= 1 && (m_order % 2 == 0 || m_order == 1));
-        uint64_t first = 0;
-        for (uint64_t i = 0; i < m_order; ++i)
+        m_bucketHistory.push(std::deque<Row>(0));
+        for (auto i = 0; i < m_order; ++i)
         {
-            first |= (1ULL << i);
+            m_maxVal |= (1 << i);
         }
-        m_completedRows.emplace_back(first);
     }
 
     void GenerateMatrix()
     {
-        auto next = m_completedRows.back().to_ullong();
-        while (m_completedRows.size() != 0)
+        std::deque<Row> reduced(m_order);
+        m_completedRows.push_back(m_maxVal);
+        auto nextFirst = m_maxVal - 1;
+        while (nextFirst != m_maxVal)
         {
-            while (next != 0)
+            if (m_bucketHistory.top().size() == 0)
             {
-                --next;
-                if (IsOrthogonal(next))
-                {
-                    m_completedRows.emplace_back(next);
-                }
+                reduced = ReduceBucket(m_completedRows.back());
+            }
+            else
+            {
+                reduced = ReduceBucket(m_completedRows.back(),
+                                       m_bucketHistory.top());
             }
             if (m_completedRows.size() == m_order)
             {
+                std::cout << "[INFO] : Matrices of order " << m_order << " found\n";
                 m_foundMatrices.push_back(m_completedRows);
-                break; // Надо понять, как искать матрицы всех классов эквивалентности
+                // TODO: Надо понять, как искать матрицы всех классов эквивалентности
+                break;
             }
-            next = m_completedRows.back().to_ullong();
-            m_completedRows.pop_back();
+            if (reduced.size() > 0)
+            {
+                m_bucketHistory.push(reduced);
+                m_completedRows.push_back(reduced.front());
+            }
+            else
+            {
+                if (m_bucketHistory.top().size() > 1)
+                {
+                    m_completedRows.pop_back();
+                }
+                else
+                {
+                    m_completedRows.pop_back();
+                    m_completedRows.pop_back();
+                    m_bucketHistory.pop();
+                }
+                if (m_bucketHistory.top().size() > 0)
+                {
+                    m_bucketHistory.top().pop_front();
+                    m_completedRows.push_back(m_bucketHistory.top().front());
+                }
+                else
+                {
+                    m_completedRows.push_back(nextFirst);
+                    --nextFirst;
+                }
+            }
         }
-        std::cout << "[INFO] : Matrices of order " << m_order << " found\n";
     }
 
     void PrintFoundMatrices()
@@ -116,23 +150,50 @@ public:
     ~Bucket() = default;
 
 private:
-    bool IsOrthogonal(const Row& other)
+    std::deque<Row> ReduceBucket(const Row& row, const std::deque<Row>& vec)
     {
-        for (const auto& row: m_completedRows)
+        std::deque<Row> reduced;
+        for (const auto& r: vec)
         {
-            if ((row ^ other).count() != (m_order / 2))
+            if (IsOrthogonal(row, r, m_order))
             {
-                return false;
+                reduced.push_back(r);
             }
         }
-        return true;
+        return reduced;
+    }
+
+    std::deque<Row> ReduceBucket(const Row& row)
+    {
+        std::deque<Row> reduced;
+        auto num = m_maxVal - 1;
+        while (true)
+        {
+            if (IsOrthogonal(row, num, m_order))
+            {
+                reduced.push_back(num);
+            }
+            if (num == 0)
+            {
+                break;
+            }
+            --num;
+        }
+        return reduced;
+    }
+
+    static bool IsOrthogonal(const Row& lhs, const Row& rhs, uint64_t order)
+    {
+        return (lhs ^ rhs).count() == (order / 2);
     }
 
 private:
-    uint64_t            m_order;
-    Matrix              m_completedRows;
-    std::vector<Matrix> m_foundMatrices;
-    MatrixPrinter       m_printer;
+    uint64_t                    m_order;
+    Matrix                      m_completedRows;
+    std::vector<Matrix>         m_foundMatrices;
+    MatrixPrinter               m_printer;
+    std::stack<std::deque<Row>> m_bucketHistory;
+    uint64_t                    m_maxVal;
 };
 
 class HadamardMatrixBuilder
