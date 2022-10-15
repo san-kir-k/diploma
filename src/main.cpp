@@ -16,12 +16,12 @@
 #include <iostream>
 #include <fstream>
 #include <cstdint>
+#include <cstring>
 #include <vector>
 #include <cassert>
 #include <bitset>
 #include <iomanip>
 #include <filesystem>
-#include <stack>
 #include <limits>
 #include <deque>
 
@@ -31,8 +31,8 @@ class MatrixPrinter
 {
 public:
     explicit MatrixPrinter(uint64_t order)
-    : m_order(order)
-    , m_genDirname("../generated_matrices/")
+        : m_order(order)
+        , m_genDirname("../generated_matrices/")
     {
         m_mDirname = m_genDirname + "order_" + std::to_string(m_order);
         fs::create_directory(m_mDirname);
@@ -65,78 +65,98 @@ private:
 class Bucket
 {
 public:
-    using Row    = std::bitset<64>;
-    using Matrix = std::vector<Row>;
+    using Row           = std::bitset<64>;
+    using Matrix        = std::vector<Row>;
+    using HistoryBucket = std::pair<std::deque<Row>, uint64_t>;
 
 public:
     explicit Bucket(uint64_t order)
         : m_order(order)
         , m_completedRows()
+        , m_bucketHistory()
         , m_foundMatrices()
         , m_printer(order)
-        , m_bucketHistory()
-        , m_maxVal(0)
     {
         assert(m_order <= 64 && m_order >= 1 && (m_order % 2 == 0 || m_order == 1));
-        m_bucketHistory.push(std::deque<Row>(0));
+        // init basis
+        uint64_t row = 0;
         for (auto i = 0; i < m_order; ++i)
         {
-            m_maxVal |= (1 << i);
+            row |= (1 << i);
         }
+        uint64_t maxVal = row;
+        m_completedRows.push_back(row);
+        row = 0;
+        for (auto i = 0; i < m_order / 2; ++i)
+        {
+            row |= (1 << (m_order - i - 1));
+        }
+        if (row != 0)
+        {
+            m_completedRows.push_back(row);
+        }
+        row = 0;
+        for (auto i = 0; i < m_order / 4; ++i)
+        {
+            row |= (1 << (m_order - i - 1));
+            row |= (1 << (m_order / 2 - i - 1));
+        }
+        if (row != 0)
+        {
+            m_completedRows.push_back(row);
+        }
+        // reduce init bucket
+        auto reduced = ReduceInitBucket(maxVal);
+        m_bucketHistory.push_back({reduced, 0});
     }
 
     void GenerateMatrix()
     {
-        std::deque<Row> reduced(m_order);
-        m_completedRows.push_back(m_maxVal);
-        auto nextFirst = m_maxVal - 1;
-        while (nextFirst != m_maxVal)
+        // matrices of order <= 2
+        if (m_completedRows.size() == m_order)
         {
-            if (m_bucketHistory.top().size() == 0)
+            std::cout << "[INFO] : Matrices of order " << m_order << " found\n";
+            m_foundMatrices.push_back(m_completedRows);
+            return;
+        }
+
+        while (m_bucketHistory.size() != 0)
+        {
+            Row   nextRow;
+            auto& [bucket, chosen] = m_bucketHistory.back();
+            for (; chosen < bucket.size(); ++chosen)
             {
-                reduced = ReduceBucket(m_completedRows.back());
+                nextRow = bucket[chosen];
+                if (IsDecreasing(m_completedRows, nextRow, m_order))
+                {
+                    ++chosen;
+                    break;
+                }
             }
-            else
+            if (nextRow.count() == 0)
             {
-                reduced = ReduceBucket(m_completedRows.back(),
-                                       m_bucketHistory.top());
+                m_completedRows.pop_back();
+                m_bucketHistory.pop_back();
+                continue;
             }
+            auto reduced = ReduceBucket(nextRow, bucket);
+            m_completedRows.push_back(nextRow);
+            m_bucketHistory.push_back({reduced, 0});
             if (m_completedRows.size() == m_order)
             {
                 std::cout << "[INFO] : Matrices of order " << m_order << " found\n";
                 m_foundMatrices.push_back(m_completedRows);
-                // TODO: Надо понять, как искать матрицы всех классов эквивалентности
+                m_completedRows.pop_back();
+                m_bucketHistory.pop_back();
                 break;
             }
-            if (reduced.size() > 0)
-            {
-                m_bucketHistory.push(reduced);
-                m_completedRows.push_back(reduced.front());
-            }
-            else
-            {
-                if (m_bucketHistory.top().size() > 1)
-                {
-                    m_completedRows.pop_back();
-                }
-                else
-                {
-                    m_completedRows.pop_back();
-                    m_completedRows.pop_back();
-                    m_bucketHistory.pop();
-                }
-                if (m_bucketHistory.top().size() > 0)
-                {
-                    m_bucketHistory.top().pop_front();
-                    m_completedRows.push_back(m_bucketHistory.top().front());
-                }
-                else
-                {
-                    m_completedRows.push_back(nextFirst);
-                    --nextFirst;
-                }
-            }
         }
+    }
+
+    void CountFoundMatrices()
+    {
+        std::cout << "[RESULT] : Count of matrices with order = "
+                  << m_order << " : " << m_foundMatrices.size() << "\n";
     }
 
     void PrintFoundMatrices()
@@ -163,21 +183,23 @@ private:
         return reduced;
     }
 
-    std::deque<Row> ReduceBucket(const Row& row)
+    std::deque<Row> ReduceInitBucket(uint64_t maxVal)
     {
         std::deque<Row> reduced;
-        auto num = m_maxVal - 1;
-        while (true)
+        for (auto num = maxVal - 1; num != 0; --num)
         {
-            if (IsOrthogonal(row, num, m_order))
+            bool isOrtho = true;
+            for (const auto& row: m_completedRows)
+            {
+                if (!IsOrthogonal(row, num, m_order))
+                {
+                    isOrtho = false;
+                }
+            }
+            if (isOrtho)
             {
                 reduced.push_back(num);
             }
-            if (num == 0)
-            {
-                break;
-            }
-            --num;
         }
         return reduced;
     }
@@ -187,13 +209,33 @@ private:
         return (lhs ^ rhs).count() == (order / 2);
     }
 
+    static bool IsDecreasing(const Matrix& upper, const Row& lower, uint64_t order)
+    {
+        for (int64_t i = 0; i < order - 1; ++i)
+        {
+            uint64_t lhs = 0;
+            uint64_t rhs = 0;
+            for (auto j = 0; j < upper.size(); ++j)
+            {
+                lhs |= (upper[j][i] << (upper.size() - j));
+                rhs |= (upper[j][i + 1] << (upper.size() - j));
+            }
+            lhs |= lower[i];
+            rhs |= lower[i + 1];
+            if (lhs > rhs)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
 private:
-    uint64_t                    m_order;
-    Matrix                      m_completedRows;
-    std::vector<Matrix>         m_foundMatrices;
-    MatrixPrinter               m_printer;
-    std::stack<std::deque<Row>> m_bucketHistory;
-    uint64_t                    m_maxVal;
+    uint64_t                  m_order;
+    Matrix                    m_completedRows;
+    std::deque<HistoryBucket> m_bucketHistory;
+    std::vector<Matrix>       m_foundMatrices;
+    MatrixPrinter             m_printer;
 };
 
 class HadamardMatrixBuilder
@@ -202,6 +244,11 @@ public:
     explicit HadamardMatrixBuilder(uint64_t order) : m_bucket(order)
     {
         m_bucket.GenerateMatrix();
+    }
+
+    void CountMatrices()
+    {
+        m_bucket.CountFoundMatrices();
     }
 
     void PrintMatrices()
@@ -215,13 +262,20 @@ private:
     Bucket m_bucket;
 };
 
-int main()
+int main(int argc, char** argv)
 {
     size_t n = 1;
-    while (n <= 32)
+    while (n <= 20)
     {
-        HadamardMatrixBuilder b1(n);
-        b1.PrintMatrices();
+        HadamardMatrixBuilder b(n);
+        if (argc > 1 && std::strcmp(argv[1], "COUNT_ONLY") == 0)
+        {
+            b.CountMatrices();
+        }
+        else
+        {
+            b.PrintMatrices();
+        }
         if (n < 4)
         {
             n *= 2;
