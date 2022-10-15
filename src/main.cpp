@@ -70,11 +70,13 @@ public:
     using HistoryBucket = std::pair<std::deque<Row>, uint64_t>;
 
 public:
-    explicit Bucket(uint64_t order)
+    explicit Bucket(uint64_t order, bool countOnly)
         : m_order(order)
         , m_completedRows()
         , m_bucketHistory()
+        , m_countOfFoundMatrices(0)
         , m_foundMatrices()
+        , m_countOnly(countOnly)
         , m_printer(order)
     {
         assert(m_order <= 64 && m_order >= 1 && (m_order % 2 == 0 || m_order == 1));
@@ -115,8 +117,9 @@ public:
         // matrices of order <= 2
         if (m_completedRows.size() == m_order)
         {
-            std::cout << "[INFO] : Matrices of order " << m_order << " found\n";
+//            std::cout << "[INFO] : Matrices of order " << m_order << " found\n";
             m_foundMatrices.push_back(m_completedRows);
+            m_countOfFoundMatrices = 1;
             return;
         }
 
@@ -144,11 +147,17 @@ public:
             m_bucketHistory.push_back({reduced, 0});
             if (m_completedRows.size() == m_order)
             {
-                std::cout << "[INFO] : Matrices of order " << m_order << " found\n";
-                m_foundMatrices.push_back(m_completedRows);
+//                std::cout << "[INFO] : Matrices of order " << m_order << " found\n";
+                if (m_countOnly)
+                {
+                    ++m_countOfFoundMatrices;
+                }
+                else
+                {
+                    m_foundMatrices.push_back(m_completedRows);
+                }
                 m_completedRows.pop_back();
-                m_bucketHistory.pop_back();
-                break;
+                m_bucketHistory.pop_back(); 
             }
         }
     }
@@ -156,7 +165,8 @@ public:
     void CountFoundMatrices()
     {
         std::cout << "[RESULT] : Count of matrices with order = "
-                  << m_order << " : " << m_foundMatrices.size() << "\n";
+                  << m_order << " : "
+                  << (m_countOnly ? m_countOfFoundMatrices : m_foundMatrices.size()) << "\n";
     }
 
     void PrintFoundMatrices()
@@ -234,14 +244,17 @@ private:
     uint64_t                  m_order;
     Matrix                    m_completedRows;
     std::deque<HistoryBucket> m_bucketHistory;
+    uint64_t                  m_countOfFoundMatrices;
     std::vector<Matrix>       m_foundMatrices;
+    bool                      m_countOnly;
     MatrixPrinter             m_printer;
 };
 
 class HadamardMatrixBuilder
 {
 public:
-    explicit HadamardMatrixBuilder(uint64_t order) : m_bucket(order)
+    explicit HadamardMatrixBuilder(uint64_t order, bool countOnly = false)
+        : m_bucket(order, countOnly)
     {
         m_bucket.GenerateMatrix();
     }
@@ -267,13 +280,14 @@ int main(int argc, char** argv)
     size_t n = 1;
     while (n <= 20)
     {
-        HadamardMatrixBuilder b(n);
         if (argc > 1 && std::strcmp(argv[1], "COUNT_ONLY") == 0)
         {
+            HadamardMatrixBuilder b(n, true);
             b.CountMatrices();
         }
         else
         {
+            HadamardMatrixBuilder b(n);
             b.PrintMatrices();
         }
         if (n < 4)
