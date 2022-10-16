@@ -185,7 +185,7 @@ private:
         std::deque<Row> reduced;
         for (const auto& r: vec)
         {
-            if (IsOrthogonal(row, r, m_order))
+            if (IsOrthogonal(row, r, m_order) && row.to_ullong() > r.to_ullong())
             {
                 reduced.push_back(r);
             }
