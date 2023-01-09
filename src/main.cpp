@@ -3,6 +3,12 @@
 //
 
 /**
+ *
+ * 1111...1111
+ * 1111...0000
+ * 1100...1100
+ * 7 6    5 4
+ *
  * Берем строчку (111…111), ставим на первое месте, относительно нее сделать множество,
  * это множество назовем корзиной (оно ортогонально певрой строке),
  * из этой корзины выбираем строку самую первую и размещаем на второй позиции,
@@ -73,6 +79,7 @@ public:
     explicit Bucket(uint64_t order, bool countOnly)
         : m_order(order)
         , m_completedRows()
+        , m_completedCols(order)
         , m_bucketHistory()
         , m_countOfFoundMatrices(0)
         , m_foundMatrices()
@@ -110,6 +117,10 @@ public:
         // reduce init bucket
         auto reduced = ReduceInitBucket(maxVal);
         m_bucketHistory.push_back({reduced, 0});
+        for (auto i = 0; i < m_order; ++i)
+        {
+            m_completedCols[i] = 7 - (4 * i / m_order);
+        }
     }
 
     void GenerateMatrix()
@@ -117,7 +128,7 @@ public:
         // matrices of order <= 2
         if (m_completedRows.size() == m_order)
         {
-//            std::cout << "[INFO] : Matrices of order " << m_order << " found\n";
+//            std::cout << "[INFO] : Matrix of order " << m_order << " found\n";
             m_foundMatrices.push_back(m_completedRows);
             m_countOfFoundMatrices = 1;
             return;
@@ -130,7 +141,7 @@ public:
             for (; chosen < bucket.size(); ++chosen)
             {
                 nextRow = bucket[chosen];
-                if (IsDecreasing(m_completedRows, nextRow, m_order))
+                if (IsDecreasing(m_completedCols, nextRow, m_order))
                 {
                     ++chosen;
                     break;
@@ -139,15 +150,24 @@ public:
             if (nextRow.count() == 0)
             {
                 m_completedRows.pop_back();
+                for (auto& col: m_completedCols)
+                {
+                    col >>= 1;
+                }
                 m_bucketHistory.pop_back();
                 continue;
             }
             auto reduced = ReduceBucket(nextRow, bucket);
             m_completedRows.push_back(nextRow);
+            for (auto i = 0; i < m_order; ++i)
+            {
+                m_completedCols[i] <<= 1;
+                m_completedCols[i] |= std::bitset<64>(nextRow[m_order - i - 1]);
+            }
             m_bucketHistory.push_back({reduced, 0});
             if (m_completedRows.size() == m_order)
             {
-//                std::cout << "[INFO] : Matrices of order " << m_order << " found\n";
+//                std::cout << "[INFO] : Matrix of order " << m_order << " found\n";
                 if (m_countOnly)
                 {
                     ++m_countOfFoundMatrices;
@@ -157,6 +177,10 @@ public:
                     m_foundMatrices.push_back(m_completedRows);
                 }
                 m_completedRows.pop_back();
+                for (auto& col: m_completedCols)
+                {
+                    col >>= 1;
+                }
                 m_bucketHistory.pop_back(); 
             }
         }
@@ -196,7 +220,7 @@ private:
     std::deque<Row> ReduceInitBucket(uint64_t maxVal)
     {
         std::deque<Row> reduced;
-        for (auto num = maxVal - 1; num != 0; --num)
+        for (auto num = maxVal - 1; num != maxVal / 2; --num)
         {
             bool isOrtho = true;
             for (const auto& row: m_completedRows)
@@ -221,18 +245,15 @@ private:
 
     static bool IsDecreasing(const Matrix& upper, const Row& lower, uint64_t order)
     {
-        for (int64_t i = 0; i < order - 1; ++i)
+        std::vector<uint64_t> seq;
+        for (auto i = 0; i < order; ++i)
         {
-            uint64_t lhs = 0;
-            uint64_t rhs = 0;
-            for (auto j = 0; j < upper.size(); ++j)
-            {
-                lhs |= (upper[j][i] << (upper.size() - j));
-                rhs |= (upper[j][i + 1] << (upper.size() - j));
-            }
-            lhs |= lower[i];
-            rhs |= lower[i + 1];
-            if (lhs > rhs)
+            const auto& col = upper[i];
+            seq.push_back(((col << 1) | std::bitset<64>(lower[order - i - 1])).to_ullong());
+        }
+        for (int i = 0; i < order - 1; ++i)
+        {
+            if (seq[i] < seq[i + 1])
             {
                 return false;
             }
@@ -243,6 +264,7 @@ private:
 private:
     uint64_t                  m_order;
     Matrix                    m_completedRows;
+    Matrix                    m_completedCols;
     std::deque<HistoryBucket> m_bucketHistory;
     uint64_t                  m_countOfFoundMatrices;
     std::vector<Matrix>       m_foundMatrices;
