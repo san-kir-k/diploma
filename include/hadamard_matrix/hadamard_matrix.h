@@ -1,18 +1,23 @@
 #pragma once
-#include "bucket.h"
 
-// не очень полезный по итогу класс
-class HadamardMatrixBuilder
+#include "matrix_printer.h"
+#include "bucket.h"
+#include "mode.h"
+
+class HadamardMatrix
 {
 public:
-    explicit HadamardMatrixBuilder(uint64_t order, bool countOnly = false);
+    explicit HadamardMatrix(uint64_t order, Mode mode = Mode::NORMAL);
 
-    void CountMatrices() const;
+    void GetResult() const;
 
-    void PrintMatrices() const;
+    static void FindMinimalMatrix(const std::string& filename, uint64_t num);
 
-    ~HadamardMatrixBuilder() = default;
+    ~HadamardMatrix() = default;
 
 private:
-    Bucket m_bucket;
+    uint64_t      m_order;
+    Bucket        m_bucket;
+    Mode          m_mode;
+    MatrixPrinter m_printer;
 };

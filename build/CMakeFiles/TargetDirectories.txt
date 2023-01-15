@@ -1,3 +1,0 @@
-/Users/ak/Desktop/diploma/diploma/build/CMakeFiles/rebuild_cache.dir
-/Users/ak/Desktop/diploma/diploma/build/CMakeFiles/edit_cache.dir
-/Users/ak/Desktop/diploma/diploma/build/CMakeFiles/naive.dir

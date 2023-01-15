@@ -1,19 +1,17 @@
 #pragma once
 #include <iostream>
-#include <fstream>
 #include <cstdint>
 #include <cstring>
 #include <vector>
 #include <cassert>
-#include <bitset>
-#include <iomanip>
-#include <limits>
 #include <deque>
-#include <algorithm>
 #include <unordered_set>
 #include <string>
 
-#include "matrix_printer.h"
+#include "matrix.h"
+#include "row.h"
+#include "mode.h"
+#include "mm_finder.h"
 
 /**
  *         Здесь просто написан алгоритм примерный
@@ -36,24 +34,17 @@
 class Bucket
 {
 public:
-    // строка матрицы
-    using Row           = std::bitset<64>;
-    // сама матрица
-    using Matrix        = std::vector<Row>;
-    // тип для истории корзин с контекстом -- pair<тип корзины; строка, на которой остановилось просеивание>
-    using HistoryBucket = std::pair<std::deque<Row>, uint64_t>;
-
-public:
-    explicit Bucket(uint64_t order, bool countOnly);
+    explicit Bucket(uint64_t order, Mode mode);
 
     void GenerateMatrix();
 
-    void CountFoundMatrices() const;
-
-    // вывод найденных матриц
-    void PrintFoundMatrices() const;
+    const std::vector<Matrix>& GetFoundMatrices() const;
+    uint64_t GetCountOfFoundMatrices() const;
 
     ~Bucket() = default;
+
+private:
+    using BucketContext = std::pair<std::deque<Row>, uint64_t>;
 
 private:
     // просеить корзину, оставив только те строки, что ортогональны строке row и меньше ее
@@ -62,35 +53,22 @@ private:
     // просеить начальную корзину по базису из трех строк
     std::deque<Row> ReduceInitBucket(uint64_t maxVal);
 
-    static bool IsOrthogonal(const Row& lhs, const Row& rhs, uint64_t order);
-
     // проверить, что при дабавлении к незавершенной матрице upper новой строки lower
     // столбцы полученной матрицы будут в строго убывающем порядке
-    static bool IsDecreasing(const Matrix& upper, const Row& lower, uint64_t order);
-
-    // в статье было сказано, что нормализовать надо только операциями из CR, CC
-    static void NormalizeMatrix(Matrix& m, uint64_t order);
-
-    static void ColumnsSwap(Matrix& m, uint64_t i, uint64_t j);
-
-    static void RowsSwap(Matrix& m, uint64_t i, uint64_t j);
-
-    static void ColumnSort(Matrix& m);
-
-    static uint64_t Rho(const Row& row);
-
-    // так как у меня матрица с убывающими столбцами и строками, а не возрастающими как в статье, то алгоритм немного поменялся
-    static void Core(Matrix& result, Matrix& h, uint64_t order, uint64_t r, bool flag);
-
-    static Matrix GetMinimumMatrix(const Matrix& m, uint64_t order);
+    static bool IsDecreasing(const Matrix& upper, const Row& lower);
 
 private:
-    uint64_t                  m_order;
-    Matrix                    m_completedRows;
-    Matrix                    m_completedCols;
-    std::deque<HistoryBucket> m_bucketHistory;
-    uint64_t                  m_countOfFoundMatrices;
-    std::vector<Matrix>       m_foundMatrices;
-    bool                      m_countOnly;
-    MatrixPrinter             m_printer;
+    uint64_t                        m_order;
+
+    Matrix                          m_completedRows;
+    Matrix                          m_completedCols;
+
+    std::deque<BucketContext>       m_bucketHistory;
+
+    uint64_t                        m_countOfFoundMatrices;
+    std::vector<Matrix>             m_foundMatrices;
+    std::vector<Matrix>             m_foundUniqueMatrices;
+    std::unordered_set<std::string> m_UniqueMatricesSet;
+
+    Mode                            m_mode;
 };

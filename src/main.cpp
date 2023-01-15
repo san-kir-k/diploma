@@ -1,35 +1,59 @@
-#include <iostream>
-#include <cstring>
+#include <cassert>
+#include <string>
 
 #include "hadamard_matrix.h"
 #include "matrix_printer.h"
-#include "bucket.h"
+#include "mode.h"
+#include "cli_args_parser.h"
 
 int main(int argc, char** argv)
 {
-    size_t n = 1;
-    while (n <= 12)
+    CLIArgsParser parser{argc, argv};
+
+    if (parser.IsOptionExists("-gen"))
     {
-        // если запускать без COUNT_ONLY, то программа будет выводить матрицы в файлики
-        // а если с COUNT_ONLY, то только подсчитает их число
-        if (argc > 1 && std::strcmp(argv[1], "COUNT_ONLY") == 0)
+        const auto& strMode = parser.GetOption("-gen");
+        Mode mode = Mode::NORMAL;
+        if (strMode == "COUNT_ONLY")
         {
-            HadamardMatrixBuilder b(n, true);
-//            b.CountMatrices();
+            mode = Mode::COUNT_ONLY;
         }
-        else
+        else if (strMode == "UNIQUE_ONLY")
         {
-            HadamardMatrixBuilder b(n);
-//            b.PrintMatrices();
+            mode = Mode::UNIQUE_ONLY;
         }
-        if (n < 4)
+
+        if (!parser.IsOptionExists("-num"))
         {
-            n *= 2;
+            assert(false);
         }
-        else
+        auto maxN = std::stoi(parser.GetOption("-num"));
+        auto n = 1;
+
+        while (n <= maxN)
         {
-            n += 4;
+            HadamardMatrix b(n, mode);
+            b.GetResult();
+
+            if (n < 4)
+            {
+                n *= 2;
+            }
+            else
+            {
+                n += 4;
+            }
         }
+
+    }
+    else if (parser.IsOptionExists("-find_mm"))
+    {
+        const auto& filename = parser.GetOption("-find_mm");
+        HadamardMatrix::FindMinimalMatrix(filename, 0);
+    }
+    else
+    {
+        assert(false);
     }
     return 0;
 }
