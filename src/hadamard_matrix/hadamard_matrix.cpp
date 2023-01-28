@@ -10,7 +10,7 @@
 using std::chrono::high_resolution_clock;
 using std::chrono::duration_cast;
 using std::chrono::duration;
-using std::chrono::milliseconds;
+using std::chrono::seconds;
 
 HadamardMatrix::HadamardMatrix(uint64_t order, Mode mode)
     : m_order(order)
@@ -79,12 +79,11 @@ void HadamardMatrix::FindMinimalMatrix(const std::string& filename, uint64_t num
     auto minM = GetMinimalMatrix(m);
     auto tEnd = high_resolution_clock::now();
 
-    auto ms = duration_cast<milliseconds>(tEnd - tStart);
+    auto sec = duration_cast<seconds>(tEnd - tStart);
 
     std::cout << "[TIME] : order = " << order
-              << " : time = " << ms.count() / 6000 << " : "
-                              << ms.count() / 100 << " : "
-                              << ms.count() % 100 << " [min:sec:ms]\n";
+              << " : time = " << sec.count() / 60 << ":"
+              << sec.count() % 60 << " [min:sec]\n";
 
     printer.PrintMatrix(minM, num);
 }
