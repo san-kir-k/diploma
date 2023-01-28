@@ -49,7 +49,20 @@ int main(int argc, char** argv)
     else if (parser.IsOptionExists("-find_mm"))
     {
         const auto& filename = parser.GetOption("-find_mm");
-        HadamardMatrix::FindMinimalMatrix(filename, 0);
+        if (parser.IsOptionExists("-num"))
+        {
+            auto num = std::stoi(parser.GetOption("-num"));
+            HadamardMatrix::FindMinimalMatrix(filename, num);
+        }
+        else
+        {
+            HadamardMatrix::FindMinimalMatrix(filename, 0);
+        }
+    }
+    else if (parser.IsOptionExists("-find_q_eq"))
+    {
+        const auto& dirname = parser.GetOption("-find_q_eq");
+        HadamardMatrix::FindQClasses(dirname);
     }
     else
     {

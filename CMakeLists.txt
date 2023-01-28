@@ -12,7 +12,8 @@ set (SOURCES
         src/bucket/bucket.cpp
         src/row/row.cpp
         src/utils/mm_finder.cpp
-        src/utils/cli_args_parser.cpp)
+        src/utils/cli_args_parser.cpp
+        src/utils/q_classifier.cpp)
 
 add_executable(naive ${SOURCES})
 

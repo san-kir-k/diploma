@@ -6,6 +6,7 @@
 
 #include "matrix.h"
 #include "mm_finder.h"
+#include "q_classifier.h"
 
 using std::chrono::high_resolution_clock;
 using std::chrono::duration_cast;
@@ -44,7 +45,7 @@ void HadamardMatrix::GetResult() const
     }
 }
 
-void HadamardMatrix::FindMinimalMatrix(const std::string& filename, uint64_t num)
+Matrix HadamardMatrix::GetMatrixFromFile(const std::string& filename)
 {
     std::ifstream in(filename);
 
@@ -73,6 +74,14 @@ void HadamardMatrix::FindMinimalMatrix(const std::string& filename, uint64_t num
         ++rowCounter;
     }
 
+    return m;
+}
+
+void HadamardMatrix::FindMinimalMatrix(const std::string& filename, uint64_t num)
+{
+    Matrix m = GetMatrixFromFile(filename);
+    auto order = m.Order();
+
     MatrixPrinter printer{order, "../build/minimal_matrices/"};
 
     auto tStart = high_resolution_clock::now();
@@ -86,4 +95,34 @@ void HadamardMatrix::FindMinimalMatrix(const std::string& filename, uint64_t num
               << sec.count() % 60 << " [min:sec]\n";
 
     printer.PrintMatrix(minM, num);
+}
+
+void HadamardMatrix::FindQClasses(const std::string& dirname)
+{
+    using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
+
+    std::vector<Matrix> inMatrices;
+    for (const auto& filename : recursive_directory_iterator(dirname))
+    {
+        auto matrix = GetMatrixFromFile(filename.path().string());
+        inMatrices.push_back(matrix);
+    }
+
+    Classifier classifier{inMatrices.front().Order()};
+
+    auto tStart = high_resolution_clock::now();
+    std::vector<uint64_t> qClasses = classifier.Classify(inMatrices);
+    auto tEnd = high_resolution_clock::now();
+
+    auto sec = duration_cast<seconds>(tEnd - tStart);
+
+    std::cout << "[TIME] : time = "
+              << sec.count() / 60 << ":"
+              << sec.count() % 60 << " [min:sec]\n";
+
+    std::cout << "Found " << qClasses.size() << " distinct Q Classes:\n";
+    for (auto i = 0; i < qClasses.size(); ++i)
+    {
+        std::cout << " > Matrix number " << i + 1 << " has " << qClasses[i] + 1 << " Q class\n";
+    }
 }

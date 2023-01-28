@@ -13,7 +13,12 @@ public:
 
     static void FindMinimalMatrix(const std::string& filename, uint64_t num);
 
+    static void FindQClasses(const std::string& dirname);
+
     ~HadamardMatrix() = default;
+
+private:
+    static Matrix GetMatrixFromFile(const std::string& filename);
 
 private:
     uint64_t      m_order;
