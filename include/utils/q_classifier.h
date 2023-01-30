@@ -21,12 +21,19 @@ private:
 
     std::vector<uint64_t> Classify4mod8(const std::vector<Matrix>& matrices) const;
 
-    void GetNextRowsPos(uint64_t offset, uint64_t count,
+    void GetNextPos(uint64_t offset, uint64_t count,
                         std::vector<std::vector<uint64_t>>& storage,
                         std::vector<uint64_t>& tmp) const;
-    std::vector<std::vector<uint64_t>> GetAllRowsPos(uint64_t count) const;
+    std::vector<std::vector<uint64_t>> GetAllPos(uint64_t count) const;
 
-    bool CheckQuadruple(const Matrix& matrix,
+    bool CheckRowQuadruple(const Matrix& matrix,
+                           const std::vector<uint64_t>& rowsPos) const;
+    bool CheckColQuadruple(const Matrix& matrix,
+                           const std::vector<uint64_t>& rowsPos) const;
+    bool CheckRowQClass(const Matrix& matrix,
+                        const std::vector<uint64_t>& colsPos,
+                        const std::vector<uint64_t>& rowsPos) const;
+    bool CheckColQClass(const Matrix& matrix,
                         const std::vector<uint64_t>& colsPos,
                         const std::vector<uint64_t>& rowsPos) const;
 
