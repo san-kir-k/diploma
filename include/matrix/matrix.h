@@ -117,6 +117,21 @@ public:
         std::swap(m_matrix[i], m_matrix[j]);
     }
 
+    inline Matrix GetTransposed()
+    {
+        Matrix transposed{m_order};
+
+        for (auto i = 0; i < m_order; ++i)
+        {
+            for (auto j = 0; j < m_order; ++j)
+            {
+                transposed[i][m_order - j - 1] = m_matrix[j][m_order - i - 1];
+            }
+        }
+        
+        return transposed;
+    }
+
     inline void ColumnSort()
     {
         Matrix transposed{m_order};

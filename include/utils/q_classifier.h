@@ -27,19 +27,17 @@ private:
     std::vector<std::vector<uint64_t>> GetAllPos(uint64_t count) const;
 
     bool CheckRowQuadruple(const Matrix& matrix,
-                           const std::vector<uint64_t>& rowsPos) const;
-    bool CheckColQuadruple(const Matrix& matrix,
-                           const std::vector<uint64_t>& rowsPos) const;
+                           const std::vector<uint64_t>& rowsPos,
+                           uint64_t& lastRowPosResult) const;
+
     bool CheckRowQClass(const Matrix& matrix,
-                        const std::vector<uint64_t>& colsPos,
-                        const std::vector<uint64_t>& rowsPos) const;
-    bool CheckColQClass(const Matrix& matrix,
                         const std::vector<uint64_t>& colsPos,
                         const std::vector<uint64_t>& rowsPos) const;
 
     Matrix GetNewMatrix(const Matrix& matrix,
                         const std::vector<uint64_t>& colsPos,
-                        const std::vector<uint64_t>& rowsPos) const;
+                        const std::vector<uint64_t>& rowsPos,
+                        uint64_t lastRowPos) const;
 
 private:
     uint64_t                                     m_order;
