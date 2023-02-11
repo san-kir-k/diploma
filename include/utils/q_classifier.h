@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_set>
+#include <unordered_map>
 #include <string>
 #include <vector>
 
@@ -10,37 +11,105 @@
 class Classifier
 {
 public:
-    explicit Classifier(uint64_t order): m_order(order), m_cachedQClasses() {}
+    explicit Classifier(uint64_t order)
+        : m_order(order)
+        , m_cachedQClasses()
+        , m_precalculatedMinMatrices()
+    {
+    }
+    explicit Classifier(uint64_t order, const std::unordered_set<std::string>& precalculated)
+        : m_order(order)
+        , m_cachedQClasses()
+        , m_precalculatedMinMatrices(precalculated)
+    {
+    }
 
     ~Classifier() = default;
 
     std::vector<uint64_t> Classify(const std::vector<Matrix>& matrices) const;
 
 private:
-    std::vector<uint64_t> Classify0mod8(const std::vector<Matrix>& matrices) const;
+    struct BlockInfo
+    {
+        uint64_t rowsMask;
+        uint64_t colsMask;
+        uint64_t rowsNegationMask;
+        uint64_t colsNegationMask;
 
-    std::vector<uint64_t> Classify4mod8(const std::vector<Matrix>& matrices) const;
+        inline BlockInfo() = default;
+        inline BlockInfo(uint64_t rowsMask, uint64_t colsMask, uint64_t rowsNegationMask, uint64_t colsNegationMask)
+            : rowsMask(rowsMask)
+            , colsMask(colsMask)
+            , rowsNegationMask(rowsNegationMask)
+            , colsNegationMask(colsNegationMask)
+        {
+        }
+    };
 
-    void GetNextPos(uint64_t offset, uint64_t count,
-                        std::vector<std::vector<uint64_t>>& storage,
-                        std::vector<uint64_t>& tmp) const;
-    std::vector<std::vector<uint64_t>> GetAllPos(uint64_t count) const;
+    using MatrixMemoStruct = std::unordered_map<uint64_t, std::vector<BlockInfo>>;
 
-    bool CheckRowQuadruple(const Matrix& matrix,
-                           const std::vector<uint64_t>& rowsPos,
-                           uint64_t& lastRowPosResult) const;
+    struct MemoContext
+    {
+        MatrixMemoStruct colBlocksMemo;
+        MatrixMemoStruct rowBlocksMemo;
+    };
 
-    bool CheckRowQClass(const Matrix& matrix,
-                        const std::vector<uint64_t>& colsPos,
-                        const std::vector<uint64_t>& rowsPos) const;
+private:
+    void GetNextPos(uint64_t                            count,
+                    std::vector<std::vector<uint64_t>>& storage,
+                    std::vector<uint64_t>&              tmp,
+                    uint64_t                            lhs,
+                    uint64_t                            rhs) const;
+    std::vector<std::vector<uint64_t>> GetAllPos(uint64_t count,
+                                                 uint64_t lhs,
+                                                 uint64_t rhs) const;
 
-    Matrix GetNewMatrix(const Matrix& matrix,
-                        const std::vector<uint64_t>& colsPos,
+    uint64_t GetMask(const std::vector<uint64_t>& vec) const;
+
+    bool Visited(const std::string& strMatrix, uint64_t& classNum) const;
+
+    bool Complements(const BlockInfo& lhs, const BlockInfo& rhs) const;
+
+    bool CheckOneMatrix(const Matrix&                matrix,
                         const std::vector<uint64_t>& rowsPos,
-                        uint64_t lastRowPos) const;
+                        const std::vector<uint64_t>& colsPos,
+                        uint64_t&                    rowsToNegateMask,
+                        uint64_t&                    colsToNegateMask) const;
+
+    uint64_t MakeMemoKey(const std::vector<uint64_t>& positions) const;
+
+    void FindBlocksRecursive(const Matrix&                             matrix,
+                             const std::vector<uint64_t>&              nextRowsPos,
+                             const std::vector<std::vector<uint64_t>>& combinations,
+                             uint64_t                                  prevCombinationIdx,
+                             uint64_t                                  leftBorder,
+                             std::vector<BlockInfo>&                   rowMemo,
+                             MemoContext&                              memo) const;
+
+    void FindBlocks(const Matrix&                             matrix,
+                    const std::vector<std::vector<uint64_t>>& rowsPositions,
+                    const std::vector<std::vector<uint64_t>>& colsPositions,
+                    MemoContext&                              memo) const;
+
+    std::vector<BlockInfo> FindAdditions(const BlockInfo&               lastBlockInfo,
+                                         const std::vector<BlockInfo>&  additions,
+                                         bool                           columns) const;
+
+    void RecursiveMatrixBuild(std::vector<uint64_t>&        indexes,
+                              const std::vector<uint64_t>&  endPerIndex,
+                              uint64_t                      indexPos,
+                              uint64_t                      startPos,
+                              const Matrix&                 matrix,
+                              const std::vector<BlockInfo>& quadruple,
+                              const std::vector<BlockInfo>& additions,
+                              std::vector<Matrix>&          result,
+                              bool                          columns = false) const;
 
 private:
     uint64_t                                     m_order;
     mutable
     std::vector<std::unordered_set<std::string>> m_cachedQClasses;
+    // TODO: remove after
+    mutable
+    std::unordered_set<std::string>              m_precalculatedMinMatrices;
 };

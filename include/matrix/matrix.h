@@ -156,6 +156,22 @@ public:
         }
     }
 
+    inline bool IsHadamard() const
+    {
+        for (auto start = 0; start < m_order; ++start)
+        {
+            for (auto next = start + 1; next < m_order; ++next)
+            {
+                auto rowXOR = m_matrix[start] ^ m_matrix[next];
+                if (rowXOR.Count() != m_order / 2)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
 private:
     uint64_t         m_order;
     std::vector<Row> m_matrix;

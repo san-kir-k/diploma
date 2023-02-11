@@ -3,10 +3,12 @@
 #include <filesystem>
 #include <fstream>
 #include <chrono>
+#include <unordered_set>
 
 #include "matrix.h"
 #include "mm_finder.h"
 #include "q_classifier.h"
+#include "debug.h"
 
 using std::chrono::high_resolution_clock;
 using std::chrono::duration_cast;
@@ -120,9 +122,12 @@ void HadamardMatrix::FindQClasses(const std::string& dirname)
               << sec.count() / 60 << ":"
               << sec.count() % 60 << " [min:sec]\n";
 
-    std::cout << "Found " << qClasses.size() << " distinct Q Classes:\n";
+    std::cout << "Found "
+              << std::unordered_set<uint64_t>(qClasses.begin(), qClasses.end()).size()
+              << " distinct Q Classes:\n";
     for (auto i = 0; i < qClasses.size(); ++i)
     {
         std::cout << " > Matrix number " << i + 1 << " has " << qClasses[i] + 1 << " Q class\n";
+        DEBUG_PRINT_MATRIX(inMatrices[i]);
     }
 }

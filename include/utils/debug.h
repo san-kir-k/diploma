@@ -1,8 +1,26 @@
-//
-// Created by AK on 11.02.2023.
-//
+#pragma once
 
-#ifndef DIPLOMA_DEBUG_H
-#define DIPLOMA_DEBUG_H
+#include <cstdint>
+#include <iostream>
+#include "matrix.h"
+#include "row.h"
 
-#endif //DIPLOMA_DEBUG_H
+inline void DEBUG_PRINT_ROW(const Row& row, uint64_t order)
+{
+    for (auto i = 0; i < order; ++i)
+    {
+        std::cout << ((row.Data() & (1 << (order - i - 1))) != 0);
+    }
+}
+
+inline void DEBUG_PRINT_MATRIX(const Matrix& matrix)
+{
+    auto order = matrix.Order();
+
+    for (auto i = 0; i < order; ++i)
+    {
+        DEBUG_PRINT_ROW(matrix[i], order);
+        std::cout << "\n";
+    }
+    std::cout << "\n\n";
+}

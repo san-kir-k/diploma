@@ -114,7 +114,7 @@ void Bucket::GenerateMatrix()
             }
             else
             {
-                auto minMatrix = GetMinimalMatrix(m_completedRows);
+                auto minMatrix = GetMinimalMatrix(m_completedRows, m_UniqueMatricesSet);
                 if (!m_UniqueMatricesSet.count(minMatrix.ToString()))
                 {
                     m_foundUniqueMatrices.push_back(minMatrix);
