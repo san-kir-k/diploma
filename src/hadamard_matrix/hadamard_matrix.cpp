@@ -4,6 +4,8 @@
 #include <fstream>
 #include <chrono>
 #include <unordered_set>
+#include <utility>
+#include <string>
 
 #include "matrix.h"
 #include "mm_finder.h"
@@ -47,20 +49,14 @@ void HadamardMatrix::GetResult() const
     }
 }
 
-Matrix HadamardMatrix::GetMatrixFromFile(const std::string& filename)
+bool HadamardMatrix::GetMatrixFromFileCore(std::ifstream& in, uint64_t order, Matrix& m)
 {
-    std::ifstream in(filename);
-
-    std::string strOrder;
-    std::getline(in, strOrder);
-    uint64_t order = std::stoi(strOrder);
-
-    Matrix m{order};
-
+    bool result = false;
     std::string line;
     auto rowCounter = 0;
-    while (std::getline(in, line))
+    while (rowCounter < order && std::getline(in, line))
     {
+        result = true;
         for (auto colCounter = 0; colCounter < line.size(); ++colCounter)
         {
             auto c = line[colCounter];
@@ -75,8 +71,39 @@ Matrix HadamardMatrix::GetMatrixFromFile(const std::string& filename)
         }
         ++rowCounter;
     }
+    return result;
+}
 
-    return m;
+Matrix HadamardMatrix::GetMatrixFromFile(const std::string& filename)
+{
+    std::ifstream in(filename);
+
+    std::string strOrder;
+    std::getline(in, strOrder);
+    uint64_t order = std::stoi(strOrder);
+
+    Matrix result{order};
+    GetMatrixFromFileCore(in, order, result);
+
+    return result;
+}
+
+std::vector<Matrix> HadamardMatrix::GetMatricesFromFile(const std::string& filename)
+{
+    std::vector<Matrix> result;
+
+    std::ifstream in(filename);
+    std::string strOrder;
+    std::getline(in, strOrder);
+    uint64_t order = std::stoi(strOrder);
+
+    Matrix m{order};
+    while (GetMatrixFromFileCore(in, order, m))
+    {
+        result.push_back(m);
+    }
+
+    return result;
 }
 
 void HadamardMatrix::FindMinimalMatrix(const std::string& filename, uint64_t num)
@@ -99,18 +126,65 @@ void HadamardMatrix::FindMinimalMatrix(const std::string& filename, uint64_t num
     printer.PrintMatrix(minM, num);
 }
 
-void HadamardMatrix::FindQClasses(const std::string& dirname)
+void HadamardMatrix::FindMinimalMatrices(const std::string& filename)
+{
+    std::vector<Matrix> minMatrices;
+    std::vector<Matrix> matrices = GetMatricesFromFile(filename);
+    auto order = matrices.front().Order();
+
+    MatrixPrinter printer{order, "../build/minimal_matrices/"};
+
+    auto tStart = high_resolution_clock::now();
+    for (const auto& m: matrices)
+    {
+        minMatrices.push_back(GetMinimalMatrix(m));
+    }
+    auto tEnd = high_resolution_clock::now();
+
+    auto sec = duration_cast<seconds>(tEnd - tStart);
+
+    std::cout << "[TIME] : order = " << order
+              << " : time = " << sec.count() / 60 << ":"
+              << sec.count() % 60 << " [min:sec]\n";
+
+    printer.PrintMatrices(minMatrices);
+}
+
+void HadamardMatrix::FindQClasses(const std::string& dirname, bool singleFile)
 {
     using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
 
     std::vector<Matrix> inMatrices;
-    for (const auto& filename : recursive_directory_iterator(dirname))
+    if (!singleFile)
     {
-        auto matrix = GetMatrixFromFile(filename.path().string());
-        inMatrices.push_back(matrix);
+        for (const auto& filename : recursive_directory_iterator(dirname))
+        {
+            auto matrix = GetMatrixFromFile(filename.path().string());
+            inMatrices.push_back(std::move(matrix));
+        }
+    }
+    else
+    {
+        for (const auto& filename : recursive_directory_iterator(dirname))
+        {
+            inMatrices = std::move(GetMatricesFromFile(filename.path().string()));
+        }
     }
 
-    Classifier classifier{inMatrices.front().Order()};
+    Classifier classifier;
+    if (singleFile)
+    {
+        std::unordered_set<std::string> minMatricesSet;
+        for (const auto& m: inMatrices)
+        {
+            minMatricesSet.insert(m.ToString());
+        }
+        classifier = Classifier{inMatrices.front().Order(), std::move(minMatricesSet)};
+    }
+    else
+    {
+        classifier = Classifier{inMatrices.front().Order()};
+    }
 
     auto tStart = high_resolution_clock::now();
     std::vector<uint64_t> qClasses = classifier.Classify(inMatrices);
@@ -118,7 +192,8 @@ void HadamardMatrix::FindQClasses(const std::string& dirname)
 
     auto sec = duration_cast<seconds>(tEnd - tStart);
 
-    std::cout << "[TIME] : time = "
+    std::cout << "\n================================================================\n"
+              << "[TIME] : time = "
               << sec.count() / 60 << ":"
               << sec.count() % 60 << " [min:sec]\n";
 

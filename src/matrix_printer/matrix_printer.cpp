@@ -24,3 +24,20 @@ void MatrixPrinter::PrintMatrix(const Matrix& m, uint64_t eqClass) const
         pmOut << "\n";
     }
 }
+
+void MatrixPrinter::PrintMatrices(const std::vector<Matrix>& matrices) const
+{
+    std::ofstream out(m_mDirname + "/" + std::to_string(m_order) + "_minimal.txt");
+    out << std::to_string(m_order) << "\n";
+    for (const auto& m: matrices)
+    {
+        for (const auto& row: m.Data())
+        {
+            for (auto i = 0; i < m_order; ++i)
+            {
+                out << (row[m_order - i - 1] == 0 ? "-" : "+");
+            }
+            out << "\n";
+        }
+    }
+}

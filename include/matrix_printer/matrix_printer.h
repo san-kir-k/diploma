@@ -19,6 +19,7 @@ public:
     explicit MatrixPrinter(uint64_t order, const std::string& genDirname);
 
     void PrintMatrix(const Matrix& m, uint64_t eqClass) const;
+    void PrintMatrices(const std::vector<Matrix>& matrices) const;
 
 private:
     uint64_t    m_order;

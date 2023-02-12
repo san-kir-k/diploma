@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <utility>
 
 #include "matrix.h"
 #include "row.h"
@@ -11,16 +12,17 @@
 class Classifier
 {
 public:
+    explicit Classifier() = default;
     explicit Classifier(uint64_t order)
         : m_order(order)
         , m_cachedQClasses()
         , m_precalculatedMinMatrices()
     {
     }
-    explicit Classifier(uint64_t order, const std::unordered_set<std::string>& precalculated)
+    explicit Classifier(uint64_t order, std::unordered_set<std::string>&& precalculated)
         : m_order(order)
         , m_cachedQClasses()
-        , m_precalculatedMinMatrices(precalculated)
+        , m_precalculatedMinMatrices(std::move(precalculated))
     {
     }
 
@@ -68,7 +70,7 @@ private:
 
     bool Visited(const std::string& strMatrix, uint64_t& classNum) const;
 
-    bool Complements(const BlockInfo& lhs, const BlockInfo& rhs) const;
+    bool Complements(const BlockInfo& lhs, const BlockInfo& rhs, bool columns) const;
 
     bool CheckOneMatrix(const Matrix&                matrix,
                         const std::vector<uint64_t>& rowsPos,

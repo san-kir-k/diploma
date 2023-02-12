@@ -73,14 +73,25 @@ bool Classifier::Visited(const std::string& strMatrix, uint64_t& classNum) const
     return false;
 }
 
-bool Classifier::Complements(const Classifier::BlockInfo& lhs, const Classifier::BlockInfo& rhs) const
+bool Classifier::Complements(const Classifier::BlockInfo& lhs, const Classifier::BlockInfo& rhs, bool columns) const
 {
-    auto lhsColsMask = lhs.colsMask;
-    auto rhsColsMask = rhs.colsMask;
+    uint64_t lhsMask = 0;
+    uint64_t rhsMask = 0;
 
-    auto lowestRhsBit  = rhsColsMask & (-rhsColsMask);
+    if (columns)
+    {
+        lhsMask = lhs.rowsMask;
+        rhsMask = rhs.rowsMask;
+    }
+    else
+    {
+        lhsMask = lhs.colsMask;
+        rhsMask = rhs.colsMask;
+    }
+
+    auto lowestRhsBit  = rhsMask & (-rhsMask);
     auto highestLhsBit = 1;
-    while (lhsColsMask >>= 1)
+    while (lhsMask >>= 1)
     {
         highestLhsBit <<= 1;
     }
@@ -209,7 +220,7 @@ std::vector<Classifier::BlockInfo> Classifier::FindAdditions(const Classifier::B
     std::vector<Classifier::BlockInfo> result;
     for (const auto& addition: additions)
     {
-        if (Complements(lastBlockInfo, addition))
+        if (Complements(lastBlockInfo, addition, columns))
         {
             if ((columns && lastBlockInfo.colsNegationMask == addition.colsNegationMask)
                 || (!columns && lastBlockInfo.rowsNegationMask == addition.rowsNegationMask))
@@ -330,13 +341,13 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
     for (const auto& startMatrix: matrices)
     {
         auto minStartMatrix = GetMinimalMatrix(startMatrix, m_precalculatedMinMatrices);
-        auto strMatrix      = minStartMatrix.ToString();
+        auto strStartMatrix = minStartMatrix.ToString();
         uint64_t possibleClass;
 
-        if (m_cachedQClasses.size() > 0 && Visited(strMatrix, possibleClass))
+        if (m_cachedQClasses.size() > 0 && Visited(strStartMatrix, possibleClass))
         {
-            std::cout << "[DEBUG] : Already visited, Q class of matrix is " << possibleClass << "\n";
-            std::cout << "[DEBUG] : Minimal matrix:\n";
+            std::cerr << "\n[DEBUG] : Already visited, Q class of matrix is " << possibleClass + 1 << "\n";
+            std::cerr << "[DEBUG] : Minimal matrix:\n";
             DEBUG_PRINT_MATRIX(minStartMatrix);
             result.push_back(possibleClass);
             continue;
@@ -346,11 +357,11 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
             ++nextQClass;
             result.push_back(nextQClass);
             m_cachedQClasses.emplace_back();
-            m_cachedQClasses.back().insert(strMatrix);
+            m_cachedQClasses.back().insert(strStartMatrix);
             // TODO: remove after
-            m_precalculatedMinMatrices.insert(strMatrix);
-            std::cout << "[DEBUG] : New Q class " << nextQClass + 1 << "\n";
-            std::cout << "[DEBUG] : Minimal matrix:\n";
+            m_precalculatedMinMatrices.insert(strStartMatrix);
+            std::cerr << "\n[DEBUG] : New Q class " << nextQClass + 1 << "\n";
+            std::cerr << "[DEBUG] : Minimal matrix:\n";
             DEBUG_PRINT_MATRIX(minStartMatrix);
         }
 
@@ -360,7 +371,10 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
         for (auto next = 0; next < candidates.size(); ++next)
         {
             auto matrix = candidates[next];
-            std::cout << "[DEBUG] : Start with new candidate number " << next + 1 << "\n";
+            std::cerr << "[DEBUG] : [ QClass "
+                      << nextQClass + 1
+                      << " ] : Start with new candidate number "
+                      << next + 1 << "\n";
 
             MemoContext blocksMemo;
             MemoContext additionsMemo;
@@ -394,17 +408,20 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                         }
 
                         // add new matrix to candidates or reject
-                        // TODO: remove after
                         auto minMatrix = GetMinimalMatrix(newMatrix, m_precalculatedMinMatrices);
                         auto strMatrix = minMatrix.ToString();
 
                         if (!m_cachedQClasses.back().count(strMatrix))
                         {
                             m_cachedQClasses.back().insert(strMatrix);
+                            DEBUG_PRINT_MATRIX(minMatrix);
                             // TODO: remove after
                             m_precalculatedMinMatrices.insert(strMatrix);
                             candidates.push_back(newMatrix);
-                            std::cout << "[DEBUG] : Inserted new candidate number " << candidates.size() << "\n";
+                            std::cerr << "[DEBUG] : [ QClass "
+                                      << nextQClass + 1
+                                      << " ] : Inserted new candidate number "
+                                      << candidates.size() << "\n";
                         }
                     }
                 }
@@ -427,17 +444,20 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                         }
 
                         // add new matrix to candidates or reject
-                        // TODO: remove after
                         auto minMatrix = GetMinimalMatrix(newMatrix, m_precalculatedMinMatrices);
                         auto strMatrix = minMatrix.ToString();
 
                         if (!m_cachedQClasses.back().count(strMatrix))
                         {
                             m_cachedQClasses.back().insert(strMatrix);
+                            DEBUG_PRINT_MATRIX(minMatrix);
                             // TODO: remove after
                             m_precalculatedMinMatrices.insert(strMatrix);
                             candidates.push_back(newMatrix);
-                            std::cout << "[DEBUG] : Inserted new candidate number " << candidates.size() << "\n";
+                            std::cerr << "[DEBUG] : [ QClass "
+                                      << nextQClass + 1
+                                      << " ] : Inserted new candidate number "
+                                      << candidates.size() << "\n";
                         }
                     }
                 }
@@ -483,7 +503,10 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                                     // TODO: remove after
                                     m_precalculatedMinMatrices.insert(strMatrix);
                                     candidates.push_back(newMatrix);
-                                    std::cout << "[DEBUG] : Inserted new candidate number " << candidates.size() << "\n";
+                                    std::cerr << "[DEBUG] : [ QClass "
+                                              << nextQClass + 1
+                                              << " ] : Inserted new candidate number "
+                                              << candidates.size() << "\n";
                                 }
                             }
                         }
