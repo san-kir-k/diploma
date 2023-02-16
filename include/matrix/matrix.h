@@ -34,12 +34,24 @@ public:
         return m_matrix[pos];
     }
 
+    inline uint64_t ColumnData(uint64_t colPos) const
+    {
+        uint64_t result = 0;
+        auto shift = 0;
+        for (const auto& row: m_matrix)
+        {
+            result |= (row[colPos] << shift);
+            ++shift;
+        }
+        return result;
+    }
+
     inline std::string ToString() const
     {
         std::string result;
         for (const auto& row: m_matrix)
         {
-            result += std::to_string(row.Data());
+            result += "$" + std::to_string(row.Data());
         }
         return result;
     }
@@ -129,6 +141,21 @@ public:
             }
         }
         
+        return transposed;
+    }
+
+    inline Matrix RowsAreCols()
+    {
+        Matrix transposed{m_order};
+
+        for (auto i = 0; i < m_order; ++i)
+        {
+            for (auto j = 0; j < m_order; ++j)
+            {
+                transposed[i][j] = m_matrix[j][i];
+            }
+        }
+
         return transposed;
     }
 

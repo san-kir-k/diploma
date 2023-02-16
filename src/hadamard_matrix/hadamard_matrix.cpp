@@ -31,7 +31,7 @@ void HadamardMatrix::GetResult() const
     if (m_mode == Mode::NORMAL || m_mode == Mode::UNIQUE_ONLY)
     {
         const auto& res = m_bucket.GetFoundMatrices();
-        std::cout << "[RESULT] : Count of matrices with order = "
+        std::cerr << "[RESULT] : Count of matrices with order = "
                   << m_order << " : "
                   << res.size() << "\n";
 
@@ -43,7 +43,7 @@ void HadamardMatrix::GetResult() const
     else
     {
         auto res = m_bucket.GetCountOfFoundMatrices();
-        std::cout << "[RESULT] : Count of matrices with order = "
+        std::cerr << "[RESULT] : Count of matrices with order = "
                   << m_order << " : "
                   << res << "\n";
     }
@@ -119,7 +119,7 @@ void HadamardMatrix::FindMinimalMatrix(const std::string& filename, uint64_t num
 
     auto sec = duration_cast<seconds>(tEnd - tStart);
 
-    std::cout << "[TIME] : order = " << order
+    std::cerr << "[TIME] : order = " << order
               << " : time = " << sec.count() / 60 << ":"
               << sec.count() % 60 << " [min:sec]\n";
 
@@ -135,27 +135,45 @@ void HadamardMatrix::FindMinimalMatrices(const std::string& filename)
     MatrixPrinter printer{order, "../build/minimal_matrices/"};
 
     auto tStart = high_resolution_clock::now();
+    auto cnt = 1;
     for (const auto& m: matrices)
     {
         minMatrices.push_back(GetMinimalMatrix(m));
+        std::cerr << "[DEBUG] : Found new minimal matrix number " << cnt << "\n";
+        ++cnt;
     }
     auto tEnd = high_resolution_clock::now();
 
     auto sec = duration_cast<seconds>(tEnd - tStart);
 
-    std::cout << "[TIME] : order = " << order
+    std::cerr << "[TIME] : order = " << order
               << " : time = " << sec.count() / 60 << ":"
               << sec.count() % 60 << " [min:sec]\n";
 
     printer.PrintMatrices(minMatrices);
 }
 
-void HadamardMatrix::FindQClasses(const std::string& dirname, bool singleFile)
+void HadamardMatrix::FindQClasses(const std::string& dirname, bool wholeFile, const std::string& memoDirname)
 {
     using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
 
     std::vector<Matrix> inMatrices;
-    if (!singleFile)
+    std::vector<Matrix> memoMatrices;
+    if (memoDirname.size() != 0)
+    {
+        for (const auto& filename : recursive_directory_iterator(memoDirname))
+        {
+            memoMatrices = std::move(GetMatricesFromFile(filename.path().string()));
+        }
+    }
+    if (wholeFile)
+    {
+        for (const auto& filename : recursive_directory_iterator(dirname))
+        {
+            inMatrices = std::move(GetMatricesFromFile(filename.path().string()));
+        }
+    }
+    else
     {
         for (const auto& filename : recursive_directory_iterator(dirname))
         {
@@ -163,19 +181,12 @@ void HadamardMatrix::FindQClasses(const std::string& dirname, bool singleFile)
             inMatrices.push_back(std::move(matrix));
         }
     }
-    else
-    {
-        for (const auto& filename : recursive_directory_iterator(dirname))
-        {
-            inMatrices = std::move(GetMatricesFromFile(filename.path().string()));
-        }
-    }
 
     Classifier classifier;
-    if (singleFile)
+    if (memoDirname.size() != 0)
     {
         std::unordered_set<std::string> minMatricesSet;
-        for (const auto& m: inMatrices)
+        for (const auto& m: memoMatrices)
         {
             minMatricesSet.insert(m.ToString());
         }
@@ -192,17 +203,17 @@ void HadamardMatrix::FindQClasses(const std::string& dirname, bool singleFile)
 
     auto sec = duration_cast<seconds>(tEnd - tStart);
 
-    std::cout << "\n================================================================\n"
+    std::cerr << "\n================================================================\n"
               << "[TIME] : time = "
               << sec.count() / 60 << ":"
               << sec.count() % 60 << " [min:sec]\n";
 
-    std::cout << "Found "
+    std::cerr << "Found "
               << std::unordered_set<uint64_t>(qClasses.begin(), qClasses.end()).size()
               << " distinct Q Classes:\n";
     for (auto i = 0; i < qClasses.size(); ++i)
     {
-        std::cout << " > Matrix number " << i + 1 << " has " << qClasses[i] + 1 << " Q class\n";
+        std::cerr << " > Matrix number " << i + 1 << " has " << qClasses[i] + 1 << " Q class\n";
         DEBUG_PRINT_MATRIX(inMatrices[i]);
     }
 }

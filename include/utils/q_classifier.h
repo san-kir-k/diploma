@@ -37,13 +37,22 @@ private:
         uint64_t colsMask;
         uint64_t rowsNegationMask;
         uint64_t colsNegationMask;
+        std::vector<uint64_t> rowsPos;
+        std::vector<uint64_t> colsPos;
 
         inline BlockInfo() = default;
-        inline BlockInfo(uint64_t rowsMask, uint64_t colsMask, uint64_t rowsNegationMask, uint64_t colsNegationMask)
+        inline BlockInfo(uint64_t              rowsMask,
+                         uint64_t              colsMask,
+                         uint64_t              rowsNegationMask,
+                         uint64_t              colsNegationMask,
+                         std::vector<uint64_t> rowsPos,
+                         std::vector<uint64_t> colsPos)
             : rowsMask(rowsMask)
             , colsMask(colsMask)
             , rowsNegationMask(rowsNegationMask)
             , colsNegationMask(colsNegationMask)
+            , rowsPos(rowsPos)
+            , colsPos(colsPos)
         {
         }
     };
@@ -61,16 +70,16 @@ private:
                     std::vector<std::vector<uint64_t>>& storage,
                     std::vector<uint64_t>&              tmp,
                     uint64_t                            lhs,
-                    uint64_t                            rhs) const;
+                    uint64_t                            rhs,
+                    const std::vector<uint64_t>&        numbers) const;
     std::vector<std::vector<uint64_t>> GetAllPos(uint64_t count,
                                                  uint64_t lhs,
-                                                 uint64_t rhs) const;
+                                                 uint64_t rhs,
+                                                 const std::vector<uint64_t>& numbers = {}) const;
 
     uint64_t GetMask(const std::vector<uint64_t>& vec) const;
 
     bool Visited(const std::string& strMatrix, uint64_t& classNum) const;
-
-    bool Complements(const BlockInfo& lhs, const BlockInfo& rhs, bool columns) const;
 
     bool CheckOneMatrix(const Matrix&                matrix,
                         const std::vector<uint64_t>& rowsPos,
@@ -86,26 +95,26 @@ private:
                              uint64_t                                  prevCombinationIdx,
                              uint64_t                                  leftBorder,
                              std::vector<BlockInfo>&                   rowMemo,
-                             MemoContext&                              memo) const;
+                             bool                                      columns) const;
 
     void FindBlocks(const Matrix&                             matrix,
                     const std::vector<std::vector<uint64_t>>& rowsPositions,
                     const std::vector<std::vector<uint64_t>>& colsPositions,
-                    MemoContext&                              memo) const;
+                    MatrixMemoStruct&                         memo,
+                    bool                                      columns) const;
 
-    std::vector<BlockInfo> FindAdditions(const BlockInfo&               lastBlockInfo,
-                                         const std::vector<BlockInfo>&  additions,
-                                         bool                           columns) const;
+    std::vector<BlockInfo> FindAdditions(const Matrix&    matrix,
+                                         const BlockInfo& lastBlockInfo,
+                                         bool             columns) const;
 
-    void RecursiveMatrixBuild(std::vector<uint64_t>&        indexes,
-                              const std::vector<uint64_t>&  endPerIndex,
-                              uint64_t                      indexPos,
-                              uint64_t                      startPos,
-                              const Matrix&                 matrix,
-                              const std::vector<BlockInfo>& quadruple,
-                              const std::vector<BlockInfo>& additions,
-                              std::vector<Matrix>&          result,
-                              bool                          columns = false) const;
+    void RecursiveMatrixBuild(std::vector<uint64_t>&                    indexes,
+                              const std::vector<uint64_t>&              endPerIndex,
+                              uint64_t                                  indexPos,
+                              uint64_t                                  startPos,
+                              const Matrix&                             matrix,
+                              const std::vector<Classifier::BlockInfo>& quadruple,
+                              std::vector<Matrix>&                      result,
+                              bool                                      columns) const;
 
 private:
     uint64_t                                     m_order;

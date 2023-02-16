@@ -15,7 +15,7 @@ public:
 
     static void FindMinimalMatrices(const std::string& filename);
 
-    static void FindQClasses(const std::string& dirname, bool singleFile = false);
+    static void FindQClasses(const std::string& dirname, bool wholeFile = false, const std::string& memoDirname = "");
 
     ~HadamardMatrix() = default;
 

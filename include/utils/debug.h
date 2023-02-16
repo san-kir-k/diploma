@@ -33,3 +33,20 @@ inline void DEBUG_PRINT_MATRIX(const Matrix& matrix)
     }
     std::cout << "\n";
 }
+
+inline void DEBUG_PRINT_MATRIX_MASK(const Matrix& lhs, const Matrix& rhs)
+{
+    auto order = lhs.Order();
+
+    std::cout << "\n";
+    for (auto i = 0; i < order; ++i)
+    {
+        DEBUG_PRINT_ROW_PM(lhs[i], order);
+        std::cout << "    ";
+        DEBUG_PRINT_ROW_PM(lhs[i] ^ rhs[i], order);
+        std::cout << "    ";
+        DEBUG_PRINT_ROW_PM(rhs[i], order);
+        std::cout << "\n";
+    }
+    std::cout << "\n";
+}

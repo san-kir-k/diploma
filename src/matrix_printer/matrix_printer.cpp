@@ -18,7 +18,7 @@ void MatrixPrinter::PrintMatrix(const Matrix& m, uint64_t eqClass) const
         for (auto i = 0; i < order; ++i)
         {
             commonOut << std::setw(3) << (row[order - i - 1] == 0 ? "-1 " : "1 ");
-            pmOut << (row[order - i - 1] == 0 ? "- " : "+ ");
+            pmOut << (row[order - i - 1] == 0 ? "-" : "+");
         }
         commonOut << "\n";
         pmOut << "\n";

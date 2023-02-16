@@ -69,13 +69,15 @@ int main(int argc, char** argv)
     else if (parser.IsOptionExists("-find_q_eq"))
     {
         const auto& dirname = parser.GetOption("-find_q_eq");
-        if (parser.IsOptionExists("-min_all"))
+        auto wholeFile = parser.IsOptionExists("-all");
+        if (parser.IsOptionExists("-memo"))
         {
-            HadamardMatrix::FindQClasses(dirname, true);
+            const auto& memoDirname = parser.GetOption("-memo");
+            HadamardMatrix::FindQClasses(dirname, wholeFile, memoDirname);
         }
         else
         {
-            HadamardMatrix::FindQClasses(dirname);
+            HadamardMatrix::FindQClasses(dirname, wholeFile);
         }
     }
     else

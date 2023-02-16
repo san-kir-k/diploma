@@ -5,12 +5,14 @@
 #include <iostream>
 #include <utility>
 #include <algorithm>
+#include <bit>
 
 void Classifier::GetNextPos(uint64_t                            count,
                             std::vector<std::vector<uint64_t>>& storage,
                             std::vector<uint64_t>&              tmp,
                             uint64_t                            lhs,
-                            uint64_t                            rhs) const
+                            uint64_t                            rhs,
+                            const std::vector<uint64_t>&        numbers) const
 {
     if (count == 0)
     {
@@ -20,13 +22,23 @@ void Classifier::GetNextPos(uint64_t                            count,
 
     for (auto i = lhs; i <= rhs - count; ++i)
     {
-        tmp.push_back(i);
-        GetNextPos(count - 1, storage, tmp, i + 1, rhs);
+        if (numbers.size() == 0)
+        {
+            tmp.push_back(i);
+        }
+        else
+        {
+            tmp.push_back(numbers[i]);
+        }
+        GetNextPos(count - 1, storage, tmp, i + 1, rhs, numbers);
         tmp.pop_back();
     }
 }
 
-std::vector<std::vector<uint64_t>> Classifier::GetAllPos(uint64_t count, uint64_t lhs, uint64_t rhs) const
+std::vector<std::vector<uint64_t>> Classifier::GetAllPos(uint64_t                     count,
+                                                         uint64_t                     lhs,
+                                                         uint64_t                     rhs,
+                                                         const std::vector<uint64_t>& numbers) const
 {
     if (count == 0)
     {
@@ -34,7 +46,7 @@ std::vector<std::vector<uint64_t>> Classifier::GetAllPos(uint64_t count, uint64_
     }
     std::vector<std::vector<uint64_t>> result;
     std::vector<uint64_t> tmp;
-    GetNextPos(count, result, tmp, lhs, rhs);
+    GetNextPos(count, result, tmp, lhs, rhs, numbers);
     return result;
 }
 
@@ -71,32 +83,6 @@ bool Classifier::Visited(const std::string& strMatrix, uint64_t& classNum) const
         }
     }
     return false;
-}
-
-bool Classifier::Complements(const Classifier::BlockInfo& lhs, const Classifier::BlockInfo& rhs, bool columns) const
-{
-    uint64_t lhsMask = 0;
-    uint64_t rhsMask = 0;
-
-    if (columns)
-    {
-        lhsMask = lhs.rowsMask;
-        rhsMask = rhs.rowsMask;
-    }
-    else
-    {
-        lhsMask = lhs.colsMask;
-        rhsMask = rhs.colsMask;
-    }
-
-    auto lowestRhsBit  = rhsMask & (-rhsMask);
-    auto highestLhsBit = 1;
-    while (lhsMask >>= 1)
-    {
-        highestLhsBit <<= 1;
-    }
-
-    return highestLhsBit < lowestRhsBit;
 }
 
 bool Classifier::CheckOneMatrix(const Matrix&                matrix,
@@ -159,8 +145,8 @@ void Classifier::FindBlocksRecursive(const Matrix&                             m
                                      const std::vector<std::vector<uint64_t>>& combinations,
                                      uint64_t                                  prevCombinationIdx,
                                      uint64_t                                  leftBorder,
-                                     std::vector<Classifier::BlockInfo>&       rowMemo,
-                                     MemoContext&                              memo) const
+                                     std::vector<Classifier::BlockInfo>&       tmpMemo,
+                                     bool                                      columns) const
 {
     if (leftBorder >= m_order)
     {
@@ -183,12 +169,16 @@ void Classifier::FindBlocksRecursive(const Matrix&                             m
         {
             auto rowMask = GetMask(nextRowsPos);
             auto colMask = GetMask(nextColsPos);
-            rowMemo.emplace_back(rowMask, colMask, rowsToNegateMask, colsToNegateMask);
+            if (columns)
+            {
+                tmpMemo.emplace_back(colMask, rowMask, colsToNegateMask, rowsToNegateMask, nextColsPos, nextRowsPos);
+            }
+            else
+            {
+                tmpMemo.emplace_back(rowMask, colMask, rowsToNegateMask, colsToNegateMask, nextRowsPos, nextColsPos);
+            }
 
-            auto key = MakeMemoKey(nextColsPos);
-            memo.colBlocksMemo[key].emplace_back(rowMask, colMask, rowsToNegateMask, colsToNegateMask);
-
-            FindBlocksRecursive(matrix, nextRowsPos, combinations, i + 1, nextColsPos.back() + 1, rowMemo, memo);
+            FindBlocksRecursive(matrix, nextRowsPos, combinations, i + 1, nextColsPos.back() + 1, tmpMemo, columns);
             return;
         }
     }
@@ -197,35 +187,74 @@ void Classifier::FindBlocksRecursive(const Matrix&                             m
 void Classifier::FindBlocks(const Matrix&                             matrix,
                             const std::vector<std::vector<uint64_t>>& rowsPositions,
                             const std::vector<std::vector<uint64_t>>& colsPositions,
-                            MemoContext&                              memo) const
+                            MatrixMemoStruct&                         memo,
+                            bool                                      columns) const
 {
     for (const auto& nextRowsPos: rowsPositions)
     {
-        std::vector<Classifier::BlockInfo> tmpRowMemo;
+        std::vector<Classifier::BlockInfo> tmpMemo;
 
-        FindBlocksRecursive(matrix, nextRowsPos, colsPositions, 0, 0, tmpRowMemo, memo);
+        FindBlocksRecursive(matrix, nextRowsPos, colsPositions, 0, 0, tmpMemo, columns);
 
-        if (tmpRowMemo.size() != 0)
+        if (tmpMemo.size() != 0)
         {
             auto key = MakeMemoKey(nextRowsPos);
-            memo.rowBlocksMemo.insert({key, std::move(tmpRowMemo)});
+            memo.insert({key, std::move(tmpMemo)});
         }
     }
 }
 
-std::vector<Classifier::BlockInfo> Classifier::FindAdditions(const Classifier::BlockInfo&              lastBlockInfo,
-                                                             const std::vector<Classifier::BlockInfo>& additions,
-                                                             bool                                      columns) const
+std::vector<Classifier::BlockInfo> Classifier::FindAdditions(const Matrix&                matrix,
+                                                             const Classifier::BlockInfo& lastBlockInfo,
+                                                             bool                         columns) const
 {
     std::vector<Classifier::BlockInfo> result;
-    for (const auto& addition: additions)
+    std::vector<uint64_t> candidates;
+    auto shapeOfAddition = ((m_order - (m_order % 8)) / 4) % 4;
+
+    if (columns)
     {
-        if (Complements(lastBlockInfo, addition, columns))
+        const auto& colsPos = lastBlockInfo.colsPos;
+        auto lastRow = lastBlockInfo.rowsPos.back();
+
+        for (auto i = lastRow + 1; i < m_order; ++i)
         {
-            if ((columns && lastBlockInfo.colsNegationMask == addition.colsNegationMask)
-                || (!columns && lastBlockInfo.rowsNegationMask == addition.rowsNegationMask))
+            auto cnt = std::popcount((matrix[i].Data() & lastBlockInfo.colsMask) ^ lastBlockInfo.colsNegationMask);
+            if (cnt == 4 || cnt == 0)
             {
-                result.push_back(addition);
+                candidates.push_back(i);
+            }
+        }
+
+        if (candidates.size() >= shapeOfAddition)
+        {
+            auto additionsPositions = GetAllPos(shapeOfAddition, 0, candidates.size(), candidates);
+            for (const auto& additionPos: additionsPositions)
+            {
+                result.emplace_back(0, lastBlockInfo.colsMask, 0, 0, additionPos, std::vector<uint64_t>{});
+            }
+        }
+    }
+    else
+    {
+        const auto& rowsPos = lastBlockInfo.rowsPos;
+        auto lastCol = lastBlockInfo.colsPos.back();
+
+        for (auto j = lastCol + 1; j < m_order; ++j)
+        {
+            auto cnt = std::popcount((matrix.ColumnData(j) & lastBlockInfo.rowsMask) ^ lastBlockInfo.rowsNegationMask);
+            if (cnt == 4 || cnt == 0)
+            {
+                candidates.push_back(j);
+            }
+        }
+
+        if (candidates.size() >= shapeOfAddition)
+        {
+            auto additionsPositions = GetAllPos(shapeOfAddition, 0, candidates.size(), candidates);
+            for (const auto &additionPos: additionsPositions)
+            {
+                result.emplace_back(0, GetMask(additionPos), 0, 0, lastBlockInfo.rowsPos, std::vector<uint64_t>{});
             }
         }
     }
@@ -240,7 +269,6 @@ void Classifier::RecursiveMatrixBuild(std::vector<uint64_t>&                    
                                       uint64_t                                  startPos,
                                       const Matrix&                             matrix,
                                       const std::vector<Classifier::BlockInfo>& quadruple,
-                                      const std::vector<Classifier::BlockInfo>& additions,
                                       std::vector<Matrix>&                      result,
                                       bool                                      columns) const
 {
@@ -252,14 +280,16 @@ void Classifier::RecursiveMatrixBuild(std::vector<uint64_t>&                    
         {
             if (columns)
             {
-                if (quadruple[prev].colsNegationMask != quadruple[indexes[i]].colsNegationMask)
+                if (quadruple[prev].colsNegationMask != quadruple[indexes[i]].colsNegationMask &&
+                    quadruple[prev].colsNegationMask != (quadruple[indexes[i]].colsNegationMask ^ quadruple[indexes[i]].colsMask))
                 {
                     return;
                 }
             }
             else
             {
-                if (quadruple[prev].rowsNegationMask != quadruple[indexes[i]].rowsNegationMask)
+                if (quadruple[prev].rowsNegationMask != quadruple[indexes[i]].rowsNegationMask &&
+                    quadruple[prev].rowsNegationMask != (quadruple[indexes[i]].rowsNegationMask ^ quadruple[indexes[i]].rowsMask))
                 {
                     return;
                 }
@@ -267,26 +297,12 @@ void Classifier::RecursiveMatrixBuild(std::vector<uint64_t>&                    
             prev = indexes[i];
         }
 
-        // find possible additions to block 4xm or mx4
-        // find all additions and add for loop
-        std::vector<Classifier::BlockInfo> additionsInfo = FindAdditions(quadruple[indexes.back()], additions, columns);
-
         // negate quadruple's block
         auto tmpMatrix{matrix};
-        std::vector<uint64_t> rowsPos;
-        for (auto nextPos = 0; nextPos < m_order; ++nextPos)
-        {
-            if ((1 << nextPos) & quadruple.front().rowsMask)
-            {
-                rowsPos.push_back(nextPos);
-            }
-        }
-
         for (auto i: indexes)
         {
-            const auto& info = quadruple[i];
-            auto colsMask    = info.colsMask;
-
+            const auto& rowsPos = quadruple[i].rowsPos;
+            auto colsMask       = quadruple[i].colsMask;
             for (auto nextRow: rowsPos)
             {
                 auto row = tmpMatrix[nextRow];
@@ -294,18 +310,22 @@ void Classifier::RecursiveMatrixBuild(std::vector<uint64_t>&                    
             }
         }
 
-        if (additions.size() == 0)
+        auto shapeOfAddition = ((m_order - (m_order % 8)) / 4) % 4;
+        if (shapeOfAddition == 0)
         {
             result.push_back(std::move(tmpMatrix));
         }
         else
         {
+            // find possible additions to block 4xm or mx4
+            // find all additions and add for loop
+            std::vector<Classifier::BlockInfo> additionsInfo = FindAdditions(matrix, quadruple[indexes.back()], columns);
             // negate additions
             for (const auto& additionInfo: additionsInfo)
             {
                 auto newMatrix{tmpMatrix};
 
-                for (auto nextRow: rowsPos)
+                for (auto nextRow: additionInfo.rowsPos)
                 {
                     auto row = newMatrix[nextRow];
                     newMatrix[nextRow] = (row & ~additionInfo.colsMask) | (~row & additionInfo.colsMask);
@@ -322,7 +342,7 @@ void Classifier::RecursiveMatrixBuild(std::vector<uint64_t>&                    
         {
             RecursiveMatrixBuild(indexes, endPerIndex,
                                  indexPos + 1, indexes[indexPos] + 1,
-                                 matrix, quadruple, additions, result);
+                                 matrix, quadruple, result, columns);
         }
     }
 }
@@ -333,10 +353,8 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
 
     auto nextQClass        = -1;
     auto countOfBlocks     = m_order / 16;
-    auto shapeOfAddition   = ((m_order - (m_order % 8)) / 4) % 4;
 
     auto blockPositions    = GetAllPos(4, 0, m_order);
-    auto additionPositions = GetAllPos(shapeOfAddition, 0, m_order);
 
     for (const auto& startMatrix: matrices)
     {
@@ -358,7 +376,6 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
             result.push_back(nextQClass);
             m_cachedQClasses.emplace_back();
             m_cachedQClasses.back().insert(strStartMatrix);
-            // TODO: remove after
             m_precalculatedMinMatrices.insert(strStartMatrix);
             std::cerr << "\n[DEBUG] : New Q class " << nextQClass + 1 << "\n";
             std::cerr << "[DEBUG] : Minimal matrix:\n";
@@ -367,6 +384,9 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
 
         std::vector<Matrix> candidates;
         candidates.push_back(minStartMatrix);
+
+        std::unordered_set<std::string> candidatesSet;
+        candidatesSet.insert(candidates.front().ToString());
 
         for (auto next = 0; next < candidates.size(); ++next)
         {
@@ -377,15 +397,9 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                       << next + 1 << "\n";
 
             MemoContext blocksMemo;
-            MemoContext additionsMemo;
-            MemoContext trAdditionsMemo;
 
-            FindBlocks(matrix, blockPositions, blockPositions, blocksMemo);
-            if (shapeOfAddition != 0)
-            {
-                FindBlocks(matrix, blockPositions, additionPositions, additionsMemo);
-                FindBlocks(matrix, additionPositions, blockPositions, trAdditionsMemo);
-            }
+            FindBlocks(matrix, blockPositions, blockPositions, blocksMemo.rowBlocksMemo, false);
+            FindBlocks(matrix.RowsAreCols(), blockPositions, blockPositions, blocksMemo.colBlocksMemo, true);
 
             if (m_order % 8 == 0)
             {
@@ -395,9 +409,8 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                     std::vector<uint64_t> indexes(m_order / 16, 0);
                     std::vector<uint64_t> endPerIndex(m_order / 16, quadruple.size());
                     std::vector<Matrix>   newMatrices;
-                    const auto& additions = additionsMemo.rowBlocksMemo[rowsKey];
 
-                    RecursiveMatrixBuild(indexes, endPerIndex, 0, 0, matrix, quadruple, additions, newMatrices);
+                    RecursiveMatrixBuild(indexes, endPerIndex, 0, 0, matrix, quadruple, newMatrices, false);
 
                     for (const auto& newMatrix: newMatrices)
                     {
@@ -411,17 +424,17 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                         auto minMatrix = GetMinimalMatrix(newMatrix, m_precalculatedMinMatrices);
                         auto strMatrix = minMatrix.ToString();
 
-                        if (!m_cachedQClasses.back().count(strMatrix))
+                        if (!m_cachedQClasses.back().count(strMatrix) && !candidatesSet.count(strMatrix))
                         {
                             m_cachedQClasses.back().insert(strMatrix);
-                            DEBUG_PRINT_MATRIX(minMatrix);
-                            // TODO: remove after
                             m_precalculatedMinMatrices.insert(strMatrix);
-                            candidates.push_back(newMatrix);
+                            candidates.push_back(minMatrix);
+                            candidatesSet.insert(strMatrix);
                             std::cerr << "[DEBUG] : [ QClass "
                                       << nextQClass + 1
                                       << " ] : Inserted new candidate number "
                                       << candidates.size() << "\n";
+                            DEBUG_PRINT_MATRIX_MASK(matrix, newMatrix);
                         }
                     }
                 }
@@ -431,9 +444,8 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                     std::vector<uint64_t> indexes(m_order / 16, 0);
                     std::vector<uint64_t> endPerIndex(m_order / 16, quadruple.size());
                     std::vector<Matrix>   newMatrices;
-                    const auto& additions = trAdditionsMemo.colBlocksMemo[colsKey];
 
-                    RecursiveMatrixBuild(indexes, endPerIndex, 0, 0, matrix, quadruple, additions, newMatrices);
+                    RecursiveMatrixBuild(indexes, endPerIndex, 0, 0, matrix, quadruple, newMatrices, true);
 
                     for (const auto& newMatrix: newMatrices)
                     {
@@ -447,17 +459,17 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                         auto minMatrix = GetMinimalMatrix(newMatrix, m_precalculatedMinMatrices);
                         auto strMatrix = minMatrix.ToString();
 
-                        if (!m_cachedQClasses.back().count(strMatrix))
+                        if (!m_cachedQClasses.back().count(strMatrix) && !candidatesSet.count(strMatrix))
                         {
                             m_cachedQClasses.back().insert(strMatrix);
-                            DEBUG_PRINT_MATRIX(minMatrix);
-                            // TODO: remove after
                             m_precalculatedMinMatrices.insert(strMatrix);
-                            candidates.push_back(newMatrix);
+                            candidates.push_back(minMatrix);
+                            candidatesSet.insert(strMatrix);
                             std::cerr << "[DEBUG] : [ QClass "
                                       << nextQClass + 1
                                       << " ] : Inserted new candidate number "
                                       << candidates.size() << "\n";
+                            DEBUG_PRINT_MATRIX_MASK(matrix, newMatrix);
                         }
                     }
                 }
@@ -469,9 +481,8 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                     std::vector<uint64_t> indexes(m_order / 16, 0);
                     std::vector<uint64_t> endPerIndex(m_order / 16, rowsQuadruple.size());
                     std::vector<Matrix>   newTmpMatrices;
-                    const auto& rowsAdditions = additionsMemo.rowBlocksMemo[rowsKey];
 
-                    RecursiveMatrixBuild(indexes, endPerIndex, 0, 0, matrix, rowsQuadruple, rowsAdditions, newTmpMatrices);
+                    RecursiveMatrixBuild(indexes, endPerIndex, 0, 0, matrix, rowsQuadruple, newTmpMatrices, false);
 
                     for (const auto& newTmpMatrix: newTmpMatrices)
                     {
@@ -480,9 +491,8 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                             std::vector<uint64_t> indexes(m_order / 16, 0);
                             std::vector<uint64_t> endPerIndex(m_order / 16, colsQuadruple.size());
                             std::vector<Matrix>   newMatrices;
-                            const auto& colsAdditions = trAdditionsMemo.colBlocksMemo[colsKey];
 
-                            RecursiveMatrixBuild(indexes, endPerIndex, 0, 0, newTmpMatrix, colsQuadruple, colsAdditions, newMatrices);
+                            RecursiveMatrixBuild(indexes, endPerIndex, 0, 0, newTmpMatrix, colsQuadruple, newMatrices, true);
 
                             for (const auto& newMatrix: newMatrices)
                             {
@@ -493,20 +503,20 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                                 }
 
                                 // add new matrix to candidates or reject
-                                // TODO: remove after
                                 auto minMatrix = GetMinimalMatrix(newMatrix, m_precalculatedMinMatrices);
                                 auto strMatrix = minMatrix.ToString();
 
-                                if (!m_cachedQClasses.back().count(strMatrix))
+                                if (!m_cachedQClasses.back().count(strMatrix) && !candidatesSet.count(strMatrix))
                                 {
                                     m_cachedQClasses.back().insert(strMatrix);
-                                    // TODO: remove after
                                     m_precalculatedMinMatrices.insert(strMatrix);
-                                    candidates.push_back(newMatrix);
+                                    candidates.push_back(minMatrix);
+                                    candidatesSet.insert(strMatrix);
                                     std::cerr << "[DEBUG] : [ QClass "
                                               << nextQClass + 1
                                               << " ] : Inserted new candidate number "
                                               << candidates.size() << "\n";
+                                    DEBUG_PRINT_MATRIX_MASK(matrix, newMatrix);
                                 }
                             }
                         }
