@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <cstring>
 #include <vector>
-#include <cassert>
 #include <deque>
 #include <unordered_set>
 #include <string>

@@ -1,5 +1,5 @@
-#include <cassert>
 #include <string>
+#include <cassert>
 
 #include "hadamard_matrix.h"
 #include "matrix_printer.h"

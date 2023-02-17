@@ -2,7 +2,6 @@
 
 #include <vector>
 #include <cstdint>
-#include <cassert>
 #include <algorithm>
 #include <string>
 
@@ -25,12 +24,10 @@ public:
 
     inline constexpr Row operator[](uint64_t pos) const
     {
-        assert(pos < m_order);
         return m_matrix[pos];
     }
     inline constexpr Row& operator[](uint64_t pos)
     {
-        assert(pos < m_order);
         return m_matrix[pos];
     }
 

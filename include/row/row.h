@@ -1,6 +1,5 @@
 #pragma once
 #include <cstdint>
-#include <cassert>
 #include <bit>
 
 class RowProxy;
@@ -32,7 +31,6 @@ public:
 
     inline constexpr bool operator[](uint64_t pos) const
     {
-        assert(pos < m_size);
         return m_data & (1 << pos);
     }
     RowProxy operator[](uint64_t pos);
@@ -86,23 +84,19 @@ public:
 
     inline constexpr Row operator<<(uint64_t pos) const
     {
-        assert(pos < m_size);
         return Row{m_size, m_data << pos};
     }
     inline constexpr Row& operator<<=(uint64_t pos)
     {
-        assert(pos < m_size);
         m_data <<= pos;
         return *this;
     }
     inline constexpr Row operator>>(uint64_t pos) const
     {
-        assert(pos < m_size);
         return Row{m_size, m_data >> pos};
     }
     inline constexpr Row& operator>>=(uint64_t pos)
     {
-        assert(pos < m_size);
         m_data >>= pos;
         return *this;
     }
