@@ -1,5 +1,7 @@
 #include "bucket.h"
 
+#include <cassert>
+
 Bucket::Bucket(uint64_t order, Mode mode)
     : m_order(order)
     , m_completedRows(order, 0)

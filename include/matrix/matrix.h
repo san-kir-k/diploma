@@ -22,11 +22,11 @@ public:
 
     ~Matrix() = default;
 
-    inline constexpr Row operator[](uint64_t pos) const
+    inline Row operator[](uint64_t pos) const
     {
         return m_matrix[pos];
     }
-    inline constexpr Row& operator[](uint64_t pos)
+    inline Row& operator[](uint64_t pos)
     {
         return m_matrix[pos];
     }
@@ -53,7 +53,7 @@ public:
         return result;
     }
 
-    inline constexpr uint64_t Size() const
+    inline uint64_t Size() const
     {
         return m_matrix.size();
     }
@@ -72,15 +72,15 @@ public:
         return m_matrix;
     }
 
-    inline constexpr void PopBack()
+    inline void PopBack()
     {
         m_matrix.pop_back();
     }
-    inline constexpr void PushBack(const Row& row)
+    inline void PushBack(const Row& row)
     {
         m_matrix.push_back(row);
     }
-    inline constexpr void PushBack(Row&& row)
+    inline void PushBack(Row&& row)
     {
         m_matrix.push_back(std::move(row));
     }
@@ -121,7 +121,7 @@ public:
         }
     }
 
-    inline constexpr void RowsSwap(uint64_t i, uint64_t j)
+    inline void RowsSwap(uint64_t i, uint64_t j)
     {
         std::swap(m_matrix[i], m_matrix[j]);
     }

@@ -169,7 +169,7 @@ public:
         return *this;
     }
 
-    inline constexpr RowProxy& operator=(const RowProxy& other)
+    inline RowProxy& operator=(const RowProxy& other)
     {
         return *this = bool(other);
     }
