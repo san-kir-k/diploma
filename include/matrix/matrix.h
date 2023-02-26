@@ -163,7 +163,7 @@ public:
         {
             for (auto j = 0; j < m_order; ++j)
             {
-                transposed[i][m_order - j - 1] = m_matrix[j][m_order - i - 1];
+                transposed[i].Store(m_order - j - 1, m_matrix[j].Get(m_order - i - 1));
             }
         }
 
@@ -175,7 +175,7 @@ public:
         {
             for (auto j = 0; j < m_order; ++j)
             {
-                m_matrix[i][m_order - j - 1] = transposed[j][m_order - i - 1];
+                m_matrix[i].Store(m_order - j - 1, transposed[j].Get(m_order - i - 1));
             }
         }
     }

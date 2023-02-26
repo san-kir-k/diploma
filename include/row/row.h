@@ -35,6 +35,15 @@ public:
     }
     RowProxy operator[](uint64_t pos);
 
+    inline constexpr bool Get(uint64_t pos) const
+    {
+        return m_data & (1 << pos);
+    }
+    inline constexpr void Store(uint64_t pos, bool val)
+    {
+        m_data ^= (-(uint64_t)val ^ m_data) & (1UL << pos);
+    }
+
     inline constexpr bool operator==(const Row& other) const
     {
         return m_size == other.m_size && m_data == other.m_data;
