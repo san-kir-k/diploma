@@ -44,6 +44,13 @@ public:
         m_data ^= (-(uint64_t)val ^ m_data) & (1UL << pos);
     }
 
+    inline constexpr void SwapBits(uint64_t lhs, uint64_t rhs)
+    {
+        m_data = (((m_data >> lhs) & 1UL) == ((m_data >> rhs) & 1UL)
+                ? m_data
+                : ((m_data ^ (1UL << rhs)) ^ (1UL << lhs)));
+    }
+
     inline constexpr bool operator==(const Row& other) const
     {
         return m_size == other.m_size && m_data == other.m_data;

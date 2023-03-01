@@ -89,14 +89,6 @@ private:
 
     uint64_t MakeMemoKey(const std::vector<uint64_t>& positions) const;
 
-    void FindBlocksRecursive(const Matrix&                             matrix,
-                             const std::vector<uint64_t>&              nextRowsPos,
-                             const std::vector<std::vector<uint64_t>>& combinations,
-                             uint64_t                                  prevCombinationIdx,
-                             uint64_t                                  leftBorder,
-                             std::vector<BlockInfo>&                   rowMemo,
-                             bool                                      columns) const;
-
     void FindBlocks(const Matrix&                             matrix,
                     const std::vector<std::vector<uint64_t>>& rowsPositions,
                     const std::vector<std::vector<uint64_t>>& colsPositions,

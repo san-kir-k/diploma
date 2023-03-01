@@ -45,7 +45,7 @@ public:
 
     inline std::string ToString() const
     {
-        std::string result;
+        std::string result{};
         for (const auto& row: m_matrix)
         {
             result += "$" + std::to_string(row.Data());
@@ -91,7 +91,7 @@ public:
         // normalize rows
         for (auto r = 0; r < m_order; ++r)
         {
-            if (!m_matrix[r][m_order - 1])
+            if (m_matrix[r][m_order - 1])
             {
                 for (auto c = 0; c < m_order; ++c)
                 {
@@ -103,7 +103,7 @@ public:
         // normalize columns
         for (auto c = 0; c < m_order; ++c)
         {
-            if (!m_matrix[0][c])
+            if (m_matrix[0][c])
             {
                 for (auto r = 0; r < m_order; ++r)
                 {
@@ -117,7 +117,7 @@ public:
     {
         for (auto r = 0; r < m_order; ++r)
         {
-            swap(m_matrix[r][m_order - i - 1], m_matrix[r][m_order - j - 1]);
+            m_matrix[r].SwapBits(m_order - i - 1, m_order - j - 1);
         }
     }
 
@@ -134,7 +134,7 @@ public:
         {
             for (auto j = 0; j < m_order; ++j)
             {
-                transposed[i][m_order - j - 1] = m_matrix[j][m_order - i - 1];
+                transposed[i].Store(m_order - j - 1, m_matrix[j].Get(m_order - i - 1));
             }
         }
         
@@ -156,19 +156,10 @@ public:
         return transposed;
     }
 
-    inline void ColumnSort()
+    inline void ColumnSort(Matrix& transposed)
     {
-        Matrix transposed{m_order};
-        for (auto i = 0; i < m_order; ++i)
-        {
-            for (auto j = 0; j < m_order; ++j)
-            {
-                transposed[i].Store(m_order - j - 1, m_matrix[j].Get(m_order - i - 1));
-            }
-        }
-
         std::sort(transposed.m_matrix.begin(), transposed.m_matrix.end(), [](const Row& lhs, const Row& rhs) {
-            return lhs > rhs;
+            return lhs < rhs;
         });
 
         for (auto i = 0; i < m_order; ++i)

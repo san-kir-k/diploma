@@ -140,50 +140,6 @@ bool Classifier::CheckOneMatrix(const Matrix&                matrix,
     return true;
 }
 
-void Classifier::FindBlocksRecursive(const Matrix&                             matrix,
-                                     const std::vector<uint64_t>&              nextRowsPos,
-                                     const std::vector<std::vector<uint64_t>>& combinations,
-                                     uint64_t                                  prevCombinationIdx,
-                                     uint64_t                                  leftBorder,
-                                     std::vector<Classifier::BlockInfo>&       tmpMemo,
-                                     bool                                      columns) const
-{
-    if (leftBorder >= m_order)
-    {
-        return;
-    }
-    auto nextCombinationIdx = prevCombinationIdx;
-    while (nextCombinationIdx < combinations.size()
-           && leftBorder != combinations[nextCombinationIdx].front())
-    {
-        ++nextCombinationIdx;
-    }
-    for (auto i = nextCombinationIdx; i < combinations.size(); ++i)
-    {
-        const auto& nextColsPos = combinations[i];
-
-        uint64_t rowsToNegateMask;
-        uint64_t colsToNegateMask;
-
-        if (CheckOneMatrix(matrix, nextRowsPos, nextColsPos, rowsToNegateMask, colsToNegateMask))
-        {
-            auto rowMask = GetMask(nextRowsPos);
-            auto colMask = GetMask(nextColsPos);
-            if (columns)
-            {
-                tmpMemo.emplace_back(colMask, rowMask, colsToNegateMask, rowsToNegateMask, nextColsPos, nextRowsPos);
-            }
-            else
-            {
-                tmpMemo.emplace_back(rowMask, colMask, rowsToNegateMask, colsToNegateMask, nextRowsPos, nextColsPos);
-            }
-
-            FindBlocksRecursive(matrix, nextRowsPos, combinations, i + 1, nextColsPos.back() + 1, tmpMemo, columns);
-            return;
-        }
-    }
-}
-
 void Classifier::FindBlocks(const Matrix&                             matrix,
                             const std::vector<std::vector<uint64_t>>& rowsPositions,
                             const std::vector<std::vector<uint64_t>>& colsPositions,
@@ -192,9 +148,42 @@ void Classifier::FindBlocks(const Matrix&                             matrix,
 {
     for (const auto& nextRowsPos: rowsPositions)
     {
+        std::unordered_set<uint64_t> used;
         std::vector<Classifier::BlockInfo> tmpMemo;
 
-        FindBlocksRecursive(matrix, nextRowsPos, colsPositions, 0, 0, tmpMemo, columns);
+        for (const auto& nextColsPos: colsPositions)
+        {
+            uint64_t rowsToNegateMask;
+            uint64_t colsToNegateMask;
+
+            bool isUsed = false;
+            for (auto pos: nextColsPos)
+            {
+                if (used.count(pos))
+                {
+                    isUsed = true;
+                }
+            }
+            if (isUsed)
+            {
+                continue;
+            }
+            if (CheckOneMatrix(matrix, nextRowsPos, nextColsPos, rowsToNegateMask, colsToNegateMask))
+            {
+                auto rowMask = GetMask(nextRowsPos);
+                auto colMask = GetMask(nextColsPos);
+                if (columns)
+                {
+                    tmpMemo.emplace_back(colMask, rowMask, colsToNegateMask, rowsToNegateMask, nextColsPos, nextRowsPos);
+                }
+                else
+                {
+                    tmpMemo.emplace_back(rowMask, colMask, rowsToNegateMask, colsToNegateMask, nextRowsPos, nextColsPos);
+                }
+
+                used.insert(nextColsPos.begin(), nextColsPos.end());
+            }
+        }
 
         if (tmpMemo.size() != 0)
         {
@@ -215,6 +204,7 @@ std::vector<Classifier::BlockInfo> Classifier::FindAdditions(const Matrix&      
     if (columns)
     {
         const auto& colsPos = lastBlockInfo.colsPos;
+//        const auto& rowsPos = lastBlockInfo.rowsPos;
         auto lastRow = lastBlockInfo.rowsPos.back();
 
         for (auto i = lastRow + 1; i < m_order; ++i)
@@ -237,6 +227,7 @@ std::vector<Classifier::BlockInfo> Classifier::FindAdditions(const Matrix&      
     }
     else
     {
+//        const auto& colsPos = lastBlockInfo.colsPos;
         const auto& rowsPos = lastBlockInfo.rowsPos;
         auto lastCol = lastBlockInfo.colsPos.back();
 
@@ -283,7 +274,10 @@ void Classifier::RecursiveMatrixBuild(std::vector<uint64_t>&                    
                 if (quadruple[prev].colsNegationMask != quadruple[indexes[i]].colsNegationMask &&
                     quadruple[prev].colsNegationMask != (quadruple[indexes[i]].colsNegationMask ^ quadruple[indexes[i]].colsMask))
                 {
-                    return;
+                    if (!(quadruple[prev].rowsPos.back() < quadruple[indexes[i]].rowsPos.front()))
+                    {
+                        return;
+                    }
                 }
             }
             else
@@ -291,7 +285,10 @@ void Classifier::RecursiveMatrixBuild(std::vector<uint64_t>&                    
                 if (quadruple[prev].rowsNegationMask != quadruple[indexes[i]].rowsNegationMask &&
                     quadruple[prev].rowsNegationMask != (quadruple[indexes[i]].rowsNegationMask ^ quadruple[indexes[i]].rowsMask))
                 {
-                    return;
+                    if (!(quadruple[prev].colsPos.back() < quadruple[indexes[i]].colsPos.front()))
+                    {
+                        return;
+                    }
                 }
             }
             prev = indexes[i];
@@ -517,6 +514,8 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                                               << " ] : Inserted new candidate number "
                                               << candidates.size() << "\n";
                                     DEBUG_PRINT_MATRIX_MASK(matrix, newMatrix);
+//                                    DEBUG_PRINT_MATRIX_MASK(matrix, minMatrix);
+                                    DEBUG_PRINT_MATRIX(minMatrix);
                                 }
                             }
                         }

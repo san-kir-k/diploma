@@ -2,53 +2,60 @@
 
 void Core(Matrix& result, Matrix& h, uint64_t r, bool flag)
 {
-    auto order = result.Order();
+    auto order      = result.Order();
+    auto transposed = h.GetTransposed();
 
     if (r == order - 1)
     {
-        h.ColumnSort();
-        if (flag || Rho(h[r]) > Rho(result[r]))
+        h.ColumnSort(transposed);
+        if (flag || Rho(h[r]) < Rho(result[r]))
         {
             result[r] = h[r];
         }
         return;
     }
 
-    Row m;
+    Row m{order, (1ULL << order) - 1};
     auto k = -1;
     std::vector<uint64_t> rowCandidates(order, 0);
 
     for (auto i = r; i < order; ++i)
     {
         h.RowsSwap(i, r);
-        h.ColumnSort();
+        transposed.ColumnsSwap(i, r);
+        h.ColumnSort(transposed);
         if (Rho(h[r]) == Rho(m))
         {
             ++k;
             rowCandidates[k] = i;
         }
-        if (Rho(h[r]) > Rho(m))
+        if (Rho(h[r]) < Rho(m))
         {
             k = 0;
             rowCandidates[k] = i;
             m = h[r];
         }
+        transposed.ColumnsSwap(i, r);
         h.RowsSwap(i, r);
     }
 
-    if (flag || Rho(m) > Rho(result[r]))
+    if (flag || Rho(m) < Rho(result[r]))
     {
         result[r] = m;
         h.RowsSwap(r, rowCandidates[0]);
-        h.ColumnSort();
+        transposed.ColumnsSwap(r, rowCandidates[0]);
+        h.ColumnSort(transposed);
         Core(result, h, r + 1, true);
+        transposed.ColumnsSwap(r, rowCandidates[0]);
         h.RowsSwap(r, rowCandidates[0]);
 
         for (auto i = 1; i <= k; ++i)
         {
             h.RowsSwap(r, rowCandidates[i]);
-            h.ColumnSort();
+            transposed.ColumnsSwap(r, rowCandidates[i]);
+            h.ColumnSort(transposed);
             Core(result, h, r + 1, false);
+            transposed.ColumnsSwap(r, rowCandidates[i]);
             h.RowsSwap(r, rowCandidates[i]);
         }
     }
@@ -57,8 +64,10 @@ void Core(Matrix& result, Matrix& h, uint64_t r, bool flag)
         for (auto i = 0; i <= k; ++i)
         {
             h.RowsSwap(r, rowCandidates[i]);
-            h.ColumnSort();
+            transposed.ColumnsSwap(r, rowCandidates[i]);
+            h.ColumnSort(transposed);
             Core(result, h, r + 1, false);
+            transposed.ColumnsSwap(r, rowCandidates[i]);
             h.RowsSwap(r, rowCandidates[i]);
         }
     }
