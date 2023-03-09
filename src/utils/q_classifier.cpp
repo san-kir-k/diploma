@@ -433,6 +433,7 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                                       << candidates.size() << "\n";
                             DEBUG_PRINT_MATRIX_MASK(matrix, newMatrix);
                         }
+                        break;
                     }
                 }
                 // handle columns
@@ -468,6 +469,7 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                                       << candidates.size() << "\n";
                             DEBUG_PRINT_MATRIX_MASK(matrix, newMatrix);
                         }
+                        break;
                     }
                 }
             }
@@ -491,6 +493,7 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
 
                             RecursiveMatrixBuild(indexes, endPerIndex, 0, 0, newTmpMatrix, colsQuadruple, newMatrices, true);
 
+                            bool isBreak = false;
                             for (const auto& newMatrix: newMatrices)
                             {
                                 // check if generated matrix is Hadamard
@@ -517,6 +520,12 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
 //                                    DEBUG_PRINT_MATRIX_MASK(matrix, minMatrix);
                                     DEBUG_PRINT_MATRIX(minMatrix);
                                 }
+                                isBreak = true;
+                                break;
+                            }
+                            if (isBreak)
+                            {
+                                break;
                             }
                         }
                     }
