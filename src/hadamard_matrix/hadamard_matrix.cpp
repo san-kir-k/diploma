@@ -182,20 +182,15 @@ void HadamardMatrix::FindQClasses(const std::string& dirname, bool wholeFile, co
         }
     }
 
-    Classifier classifier;
+    std::unordered_set<std::string> minMatricesSet;
     if (memoDirname.size() != 0)
     {
-        std::unordered_set<std::string> minMatricesSet;
         for (const auto& m: memoMatrices)
         {
             minMatricesSet.insert(m.ToString());
         }
-        classifier = Classifier{inMatrices.front().Order(), std::move(minMatricesSet)};
     }
-    else
-    {
-        classifier = Classifier{inMatrices.front().Order()};
-    }
+    Classifier classifier{inMatrices.front().Order(), std::move(minMatricesSet)};
 
     auto tStart = high_resolution_clock::now();
     std::vector<uint64_t> qClasses = classifier.Classify(inMatrices);

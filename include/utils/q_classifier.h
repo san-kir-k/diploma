@@ -5,9 +5,12 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <mutex>
+#include <thread>
 
 #include "matrix.h"
 #include "row.h"
+#include "BS_thread_pool.hpp"
 
 class Classifier
 {
@@ -17,12 +20,16 @@ public:
         : m_order(order)
         , m_cachedQClasses()
         , m_precalculatedMinMatrices()
+        , m_pool(std::thread::hardware_concurrency() - 1)
+        , m_m()
     {
     }
     explicit Classifier(uint64_t order, std::unordered_set<std::string>&& precalculated)
         : m_order(order)
         , m_cachedQClasses()
         , m_precalculatedMinMatrices(std::move(precalculated))
+        , m_pool(std::thread::hardware_concurrency() - 1)
+        , m_m()
     {
     }
 
@@ -112,7 +119,10 @@ private:
     uint64_t                                     m_order;
     mutable
     std::vector<std::unordered_set<std::string>> m_cachedQClasses;
-    // TODO: remove after
     mutable
     std::unordered_set<std::string>              m_precalculatedMinMatrices;
+    mutable
+    BS::thread_pool                              m_pool;
+    mutable
+    std::mutex                                   m_m;
 };

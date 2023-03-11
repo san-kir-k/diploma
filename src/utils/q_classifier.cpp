@@ -204,7 +204,6 @@ std::vector<Classifier::BlockInfo> Classifier::FindAdditions(const Matrix&      
     if (columns)
     {
         const auto& colsPos = lastBlockInfo.colsPos;
-//        const auto& rowsPos = lastBlockInfo.rowsPos;
         auto lastRow = lastBlockInfo.rowsPos.back();
 
         for (auto i = lastRow + 1; i < m_order; ++i)
@@ -227,7 +226,6 @@ std::vector<Classifier::BlockInfo> Classifier::FindAdditions(const Matrix&      
     }
     else
     {
-//        const auto& colsPos = lastBlockInfo.colsPos;
         const auto& rowsPos = lastBlockInfo.rowsPos;
         auto lastCol = lastBlockInfo.colsPos.back();
 
@@ -382,9 +380,6 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
         std::vector<Matrix> candidates;
         candidates.push_back(minStartMatrix);
 
-        std::unordered_set<std::string> candidatesSet;
-        candidatesSet.insert(candidates.front().ToString());
-
         for (auto next = 0; next < candidates.size(); ++next)
         {
             auto matrix = candidates[next];
@@ -403,75 +398,86 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                 // handle rows
                 for (const auto& [rowsKey, quadruple]: blocksMemo.rowBlocksMemo)
                 {
-                    std::vector<uint64_t> indexes(m_order / 16, 0);
-                    std::vector<uint64_t> endPerIndex(m_order / 16, quadruple.size());
-                    std::vector<Matrix>   newMatrices;
+                    auto task = [&quadruple=quadruple, &matrix, &candidates, &nextQClass, this] {
+                        std::vector<uint64_t> indexes(this->m_order / 16, 0);
+                        std::vector<uint64_t> endPerIndex(this->m_order / 16, quadruple.size());
+                        std::vector<Matrix>   newMatrices;
 
-                    RecursiveMatrixBuild(indexes, endPerIndex, 0, 0, matrix, quadruple, newMatrices, false);
+                        RecursiveMatrixBuild(indexes, endPerIndex, 0, 0, matrix, quadruple, newMatrices, false);
 
-                    for (const auto& newMatrix: newMatrices)
-                    {
-                        // check if generated matrix is Hadamard
-                        if (!newMatrix.IsHadamard())
+                        for (const auto& newMatrix: newMatrices)
                         {
-                            continue;
-                        }
+                            // check if generated matrix is Hadamard
+                            if (!newMatrix.IsHadamard())
+                            {
+                                continue;
+                            }
 
-                        // add new matrix to candidates or reject
-                        auto minMatrix = GetMinimalMatrix(newMatrix, m_precalculatedMinMatrices);
-                        auto strMatrix = minMatrix.ToString();
+                            // add new matrix to candidates or reject
+                            auto minMatrix = GetMinimalMatrix(newMatrix, this->m_precalculatedMinMatrices);
+                            auto strMatrix = minMatrix.ToString();
 
-                        if (!m_cachedQClasses.back().count(strMatrix) && !candidatesSet.count(strMatrix))
-                        {
-                            m_cachedQClasses.back().insert(strMatrix);
-                            m_precalculatedMinMatrices.insert(strMatrix);
-                            candidates.push_back(minMatrix);
-                            candidatesSet.insert(strMatrix);
-                            std::cerr << "[DEBUG] : [ QClass "
-                                      << nextQClass + 1
-                                      << " ] : Inserted new candidate number "
-                                      << candidates.size() << "\n";
-                            DEBUG_PRINT_MATRIX_MASK(matrix, newMatrix);
+                            {
+                                std::lock_guard<std::mutex> lock{this->m_m};
+                                if (!this->m_cachedQClasses.back().count(strMatrix))
+                                {
+                                    this->m_precalculatedMinMatrices.insert(strMatrix);
+                                    this->m_cachedQClasses.back().insert(strMatrix);
+                                    candidates.push_back(minMatrix);
+                                    std::cerr << "[DEBUG] : [ QClass "
+                                              << nextQClass + 1
+                                              << " ] : Inserted new candidate number "
+                                              << candidates.size() << "\n";
+                                    DEBUG_PRINT_MATRIX_MASK(matrix, newMatrix);
+                                }
+                                return;
+                            }
                         }
-                        break;
-                    }
+                    };
+                    m_pool.push_task(std::move(task));
                 }
                 // handle columns
                 for (const auto& [colsKey, quadruple]: blocksMemo.colBlocksMemo)
                 {
-                    std::vector<uint64_t> indexes(m_order / 16, 0);
-                    std::vector<uint64_t> endPerIndex(m_order / 16, quadruple.size());
-                    std::vector<Matrix>   newMatrices;
+                    auto task = [&quadruple=quadruple, &matrix, &candidates, &nextQClass, this] {
+                        std::vector<uint64_t> indexes(this->m_order / 16, 0);
+                        std::vector<uint64_t> endPerIndex(this->m_order / 16, quadruple.size());
+                        std::vector<Matrix>   newMatrices;
 
-                    RecursiveMatrixBuild(indexes, endPerIndex, 0, 0, matrix, quadruple, newMatrices, true);
+                        RecursiveMatrixBuild(indexes, endPerIndex, 0, 0, matrix, quadruple, newMatrices, true);
 
-                    for (const auto& newMatrix: newMatrices)
-                    {
-                        // check if generated matrix is Hadamard
-                        if (!newMatrix.IsHadamard())
+                        for (const auto& newMatrix: newMatrices)
                         {
-                            continue;
-                        }
+                            // check if generated matrix is Hadamard
+                            if (!newMatrix.IsHadamard())
+                            {
+                                continue;
+                            }
 
-                        // add new matrix to candidates or reject
-                        auto minMatrix = GetMinimalMatrix(newMatrix, m_precalculatedMinMatrices);
-                        auto strMatrix = minMatrix.ToString();
+                            // add new matrix to candidates or reject
+                            auto minMatrix = GetMinimalMatrix(newMatrix, this->m_precalculatedMinMatrices);
+                            auto strMatrix = minMatrix.ToString();
 
-                        if (!m_cachedQClasses.back().count(strMatrix) && !candidatesSet.count(strMatrix))
-                        {
-                            m_cachedQClasses.back().insert(strMatrix);
-                            m_precalculatedMinMatrices.insert(strMatrix);
-                            candidates.push_back(minMatrix);
-                            candidatesSet.insert(strMatrix);
-                            std::cerr << "[DEBUG] : [ QClass "
-                                      << nextQClass + 1
-                                      << " ] : Inserted new candidate number "
-                                      << candidates.size() << "\n";
-                            DEBUG_PRINT_MATRIX_MASK(matrix, newMatrix);
+                            {
+                                std::lock_guard<std::mutex> lock{this->m_m};
+                                if (!this->m_cachedQClasses.back().count(strMatrix))
+                                {
+                                    this->m_precalculatedMinMatrices.insert(strMatrix);
+                                    this->m_cachedQClasses.back().insert(strMatrix);
+                                    candidates.push_back(minMatrix);
+                                    std::cerr << "[DEBUG] : [ QClass "
+                                              << nextQClass + 1
+                                              << " ] : Inserted new candidate number "
+                                              << candidates.size() << "\n";
+                                    DEBUG_PRINT_MATRIX_MASK(matrix, newMatrix);
+                                }
+                                return;
+                            }
                         }
-                        break;
-                    }
+                    };
+                    m_pool.push_task(std::move(task));
                 }
+                m_pool.wait_for_tasks();
             }
             else
             {
@@ -487,49 +493,47 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                     {
                         for (const auto& [colsKey, colsQuadruple]: blocksMemo.colBlocksMemo)
                         {
-                            std::vector<uint64_t> indexes(m_order / 16, 0);
-                            std::vector<uint64_t> endPerIndex(m_order / 16, colsQuadruple.size());
-                            std::vector<Matrix>   newMatrices;
+                            auto task = [&colsQuadruple=colsQuadruple, &matrix, &newTmpMatrix, &candidates, &nextQClass, this] {
+                                std::vector<uint64_t> indexes(this->m_order / 16, 0);
+                                std::vector<uint64_t> endPerIndex(this->m_order / 16, colsQuadruple.size());
+                                std::vector<Matrix>   newMatrices;
 
-                            RecursiveMatrixBuild(indexes, endPerIndex, 0, 0, newTmpMatrix, colsQuadruple, newMatrices, true);
+                                RecursiveMatrixBuild(indexes, endPerIndex, 0, 0, newTmpMatrix, colsQuadruple, newMatrices, true);
 
-                            bool isBreak = false;
-                            for (const auto& newMatrix: newMatrices)
-                            {
-                                // check if generated matrix is Hadamard
-                                if (!newMatrix.IsHadamard())
+                                for (const auto& newMatrix: newMatrices)
                                 {
-                                    continue;
-                                }
+                                    // check if generated matrix is Hadamard
+                                    if (!newMatrix.IsHadamard())
+                                    {
+                                        continue;
+                                    }
 
-                                // add new matrix to candidates or reject
-                                auto minMatrix = GetMinimalMatrix(newMatrix, m_precalculatedMinMatrices);
-                                auto strMatrix = minMatrix.ToString();
+                                    // add new matrix to candidates or reject
+                                    auto minMatrix = GetMinimalMatrix(newMatrix, this->m_precalculatedMinMatrices);
+                                    auto strMatrix = minMatrix.ToString();
 
-                                if (!m_cachedQClasses.back().count(strMatrix) && !candidatesSet.count(strMatrix))
-                                {
-                                    m_cachedQClasses.back().insert(strMatrix);
-                                    m_precalculatedMinMatrices.insert(strMatrix);
-                                    candidates.push_back(minMatrix);
-                                    candidatesSet.insert(strMatrix);
-                                    std::cerr << "[DEBUG] : [ QClass "
-                                              << nextQClass + 1
-                                              << " ] : Inserted new candidate number "
-                                              << candidates.size() << "\n";
-                                    DEBUG_PRINT_MATRIX_MASK(matrix, newMatrix);
-//                                    DEBUG_PRINT_MATRIX_MASK(matrix, minMatrix);
-                                    DEBUG_PRINT_MATRIX(minMatrix);
+                                    {
+                                        std::lock_guard<std::mutex> lock{this->m_m};
+                                        if (!this->m_cachedQClasses.back().count(strMatrix))
+                                        {
+                                            this->m_precalculatedMinMatrices.insert(strMatrix);
+                                            this->m_cachedQClasses.back().insert(strMatrix);
+                                            candidates.push_back(minMatrix);
+                                            std::cerr << "[DEBUG] : [ QClass "
+                                                      << nextQClass + 1
+                                                      << " ] : Inserted new candidate number "
+                                                      << candidates.size() << "\n";
+                                            DEBUG_PRINT_MATRIX_MASK(matrix, newMatrix);
+                                        };
+                                        return;
+                                    }
                                 }
-                                isBreak = true;
-                                break;
-                            }
-                            if (isBreak)
-                            {
-                                break;
-                            }
+                            };
+                            m_pool.push_task(std::move(task));
                         }
                     }
                 }
+                m_pool.wait_for_tasks();
             }
         }
     }
