@@ -398,7 +398,7 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                 // handle rows
                 for (const auto& [rowsKey, quadruple]: blocksMemo.rowBlocksMemo)
                 {
-                    auto task = [&quadruple=quadruple, &matrix, &candidates, &nextQClass, this] {
+                    auto task = [quadruple=std::move(quadruple), &matrix, &candidates, &nextQClass, this] {
                         std::vector<uint64_t> indexes(this->m_order / 16, 0);
                         std::vector<uint64_t> endPerIndex(this->m_order / 16, quadruple.size());
                         std::vector<Matrix>   newMatrices;
@@ -441,7 +441,7 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                 // handle columns
                 for (const auto& [colsKey, quadruple]: blocksMemo.colBlocksMemo)
                 {
-                    auto task = [&quadruple=quadruple, &matrix, &candidates, &nextQClass, this] {
+                    auto task = [quadruple=std::move(quadruple), &matrix, &candidates, &nextQClass, this] {
                         std::vector<uint64_t> indexes(this->m_order / 16, 0);
                         std::vector<uint64_t> endPerIndex(this->m_order / 16, quadruple.size());
                         std::vector<Matrix>   newMatrices;
@@ -497,7 +497,8 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                     {
                         for (const auto& [colsKey, colsQuadruple]: blocksMemo.colBlocksMemo)
                         {
-                            auto task = [&colsQuadruple=colsQuadruple, &matrix, &newTmpMatrix, &candidates, &nextQClass, this] {
+                            auto task = [colsQuadruple=colsQuadruple, &matrix,
+                                         newTmpMatrix=std::move(newTmpMatrix), &candidates, &nextQClass, this] {
                                 std::vector<uint64_t> indexes(this->m_order / 16, 0);
                                 std::vector<uint64_t> endPerIndex(this->m_order / 16, colsQuadruple.size());
                                 std::vector<Matrix>   newMatrices;
@@ -530,7 +531,7 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                                                       << " ] : Inserted new candidate number "
                                                       << candidates.size() << "\n";
                                             DEBUG_PRINT_MATRIX_MASK(matrix, newMatrix);
-                                        };
+                                        }
                                         return;
                                     }
                                 }
