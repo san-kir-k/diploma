@@ -5,7 +5,7 @@ project(diploma)
 find_package(Threads REQUIRED)
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_FLAGS "-O2 -mcpu=apple-m1")
+set(CMAKE_CXX_FLAGS "-O2 -mcpu=apple-m1 -mtune=native")
 
 set (SOURCES
         src/main.cpp
@@ -26,6 +26,7 @@ target_include_directories (naive
         ${CMAKE_SOURCE_DIR}/include/matrix_printer
         ${CMAKE_SOURCE_DIR}/include/bucket
         ${CMAKE_SOURCE_DIR}/include/row
+        ${CMAKE_SOURCE_DIR}/include/thread_safe_set
         ${CMAKE_SOURCE_DIR}/include/matrix
         ${CMAKE_SOURCE_DIR}/include/utils
         ${CMAKE_SOURCE_DIR}/3rd_party/thread_pool)

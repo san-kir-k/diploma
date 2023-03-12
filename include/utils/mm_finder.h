@@ -5,6 +5,7 @@
 
 #include "matrix.h"
 #include "row.h"
+#include "thread_safe_set.h"
 
 inline constexpr uint64_t Rho(const Row& row)
 {
@@ -14,4 +15,4 @@ inline constexpr uint64_t Rho(const Row& row)
 // так как у меня матрица с убывающими столбцами и строками, а не возрастающими как в статье, то алгоритм немного поменялся
 void Core(Matrix& result, Matrix& h, uint64_t r, bool flag);
 
-Matrix GetMinimalMatrix(const Matrix& m, const std::unordered_set<std::string>& memo = {});
+Matrix GetMinimalMatrix(const Matrix& m, const ThreadSafeSet<std::string>& memo = {});

@@ -418,7 +418,9 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                             auto strMatrix = minMatrix.ToString();
 
                             {
-                                std::lock_guard<std::mutex> lock{this->m_m};
+                                std::unique_lock<std::mutex> qLock{this->m_m, std::defer_lock};
+                                auto setLock = AcquireLock(this->m_precalculatedMinMatrices, std::defer_lock);
+                                std::lock(qLock, setLock);
                                 if (!this->m_cachedQClasses.back().count(strMatrix))
                                 {
                                     this->m_precalculatedMinMatrices.insert(strMatrix);
@@ -459,7 +461,9 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                             auto strMatrix = minMatrix.ToString();
 
                             {
-                                std::lock_guard<std::mutex> lock{this->m_m};
+                                std::unique_lock<std::mutex> qLock{this->m_m, std::defer_lock};
+                                auto setLock = AcquireLock(this->m_precalculatedMinMatrices, std::defer_lock);
+                                std::lock(qLock, setLock);
                                 if (!this->m_cachedQClasses.back().count(strMatrix))
                                 {
                                     this->m_precalculatedMinMatrices.insert(strMatrix);
@@ -513,7 +517,9 @@ std::vector<uint64_t> Classifier::Classify(const std::vector<Matrix>& matrices) 
                                     auto strMatrix = minMatrix.ToString();
 
                                     {
-                                        std::lock_guard<std::mutex> lock{this->m_m};
+                                        std::unique_lock<std::mutex> qLock{this->m_m, std::defer_lock};
+                                        auto setLock = AcquireLock(this->m_precalculatedMinMatrices, std::defer_lock);
+                                        std::lock(qLock, setLock);
                                         if (!this->m_cachedQClasses.back().count(strMatrix))
                                         {
                                             this->m_precalculatedMinMatrices.insert(strMatrix);

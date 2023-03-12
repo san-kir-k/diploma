@@ -11,6 +11,7 @@
 #include "matrix.h"
 #include "row.h"
 #include "BS_thread_pool.hpp"
+#include "thread_safe_set.h"
 
 class Classifier
 {
@@ -27,10 +28,13 @@ public:
     explicit Classifier(uint64_t order, std::unordered_set<std::string>&& precalculated)
         : m_order(order)
         , m_cachedQClasses()
-        , m_precalculatedMinMatrices(std::move(precalculated))
         , m_pool(std::thread::hardware_concurrency() - 1)
         , m_m()
     {
+        for (auto&& val: precalculated)
+        {
+            m_precalculatedMinMatrices.insert(std::move(val));
+        }
     }
 
     ~Classifier() = default;
@@ -120,7 +124,7 @@ private:
     mutable
     std::vector<std::unordered_set<std::string>> m_cachedQClasses;
     mutable
-    std::unordered_set<std::string>              m_precalculatedMinMatrices;
+    ThreadSafeSet<std::string>                   m_precalculatedMinMatrices;
     mutable
     BS::thread_pool                              m_pool;
     mutable

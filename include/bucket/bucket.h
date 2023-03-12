@@ -11,6 +11,7 @@
 #include "row.h"
 #include "mode.h"
 #include "mm_finder.h"
+#include "thread_safe_set.h"
 
 /**
  *         Здесь просто написан алгоритм примерный
@@ -67,7 +68,7 @@ private:
     uint64_t                        m_countOfFoundMatrices;
     std::vector<Matrix>             m_foundMatrices;
     std::vector<Matrix>             m_foundUniqueMatrices;
-    std::unordered_set<std::string> m_UniqueMatricesSet;
+    ThreadSafeSet<std::string>      m_UniqueMatricesSet;
 
     Mode                            m_mode;
 };

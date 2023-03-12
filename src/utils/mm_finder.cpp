@@ -73,7 +73,7 @@ void Core(Matrix& result, Matrix& h, uint64_t r, bool flag)
     }
 }
 
-Matrix GetMinimalMatrix(const Matrix& m, const std::unordered_set<std::string>& memo)
+Matrix GetMinimalMatrix(const Matrix& m, const ThreadSafeSet<std::string>& memo)
 {
     auto order = m.Order();
     
@@ -88,9 +88,12 @@ Matrix GetMinimalMatrix(const Matrix& m, const std::unordered_set<std::string>& 
         {
             h.RowsSwap(0, i);
             h.Normalize();
-            if (memo.count(result.ToString()))
             {
-                return result;
+                auto lock = AcquireLock(memo);
+                if (memo.count(result.ToString()))
+                {
+                    return result;
+                }
             }
             Core(result, h, 1, false);
             h.RowsSwap(0, i);
