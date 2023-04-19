@@ -18,9 +18,9 @@ time_stamp_ctx = [4, 2, 933, 15750]
 order_mt = [16, 20, 24, 28]
 time_stamp_mt = [2, 1, 56, 3200]
 
-line_naive, = ax.plot(order_naive, time_stamp_naive, linewidth=2.0, color='r')
-line_ctx, = ax.plot(order_ctx, time_stamp_ctx, linewidth=2.0, color='b')
-line_mt, = ax.plot(order_mt, time_stamp_mt, linewidth=2.0, color='g')
+line_naive, = ax.plot(order_naive, time_stamp_naive, linewidth=2.0, color='r', marker='o')
+line_ctx, = ax.plot(order_ctx, time_stamp_ctx, linewidth=2.0, color='b', marker='o')
+line_mt, = ax.plot(order_mt, time_stamp_mt, linewidth=2.0, color='g', marker='o')
 
 ax.legend([line_naive, line_ctx, line_mt], ["наивный", "однопоточный с контекстом", "многопоточный с контекстом"])
 ax.set_yscale('function', functions=(forward, inverse))

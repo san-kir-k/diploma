@@ -1,0 +1,420 @@
+% ГОСТ:
+% https://www.rea.ru/ru/org/managements/orgnirupr/Documents/gost_7.32-2017.pdf?ysclid=l8vf1bt2ib696423846
+% https://docs.cntd.ru/document/1200063713?marker=7D20K3
+
+
+\ProvidesPackage{vkr}[Шаблон ВКР для МАИ]
+
+% Размер страниц:
+\usepackage[a4paper, includefoot, left=2.5cm, right=1.5cm, top=2cm, bottom=2cm, headsep=1cm, footskip=1cm]{geometry}
+            
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage[pdftex]{graphicx}
+
+% Times New Roman:
+\usepackage{newtxmath}
+
+% Полуторный интервал:
+\usepackage{setspace}
+\onehalfspacing
+
+% Пробел между предложениями обрабатывается так же, как пробелы между словами в середине предложения:
+\frenchspacing
+
+\sloppy
+
+% Красная строка:
+\usepackage{indentfirst}
+
+% Цвета:
+\usepackage[usenames, dvipsnames]{xcolor}
+
+% Изменение заголовка списка содержания:
+\renewcommand{\contentsname}{Содержание}
+
+% =======================================================
+
+% Листинг кода:
+
+\usepackage{verbatim}
+\usepackage{listings}
+\lstset
+{
+    basicstyle=\small\ttfamily,
+    numbers=left,
+    backgroundcolor=\color{white},
+    frame=single,
+    rulecolor=\color{black},
+    tabsize=1,
+    breaklines=true,
+    breakatwhitespace=false
+}
+\lstset{extendedchars=true,basicstyle=\small\ttfamily,literate={Ö}{{\"O}}1  {Ä}{{\"A}}1  {Ü}{{\"U}}1  {ß}{{\ss}}1  {ü}{{\"u}}1  {ä}{{\"a}}1  {ö}{{\"o}}1  {~}{{\textasciitilde}}1  {а}{{\selectfont\char224}}1  {б}{{\selectfont\char225}}1  {в}{{\selectfont\char226}}1  {г}{{\selectfont\char227}}1  {д}{{\selectfont\char228}}1  {е}{{\selectfont\char229}}1  {ё}{{\"e}}1  {ж}{{\selectfont\char230}}1  {з}{{\selectfont\char231}}1  {и}{{\selectfont\char232}}1  {й}{{\selectfont\char233}}1  {к}{{\selectfont\char234}}1  {л}{{\selectfont\char235}}1  {м}{{\selectfont\char236}}1  {н}{{\selectfont\char237}}1  {о}{{\selectfont\char238}}1  {п}{{\selectfont\char239}}1  {р}{{\selectfont\char240}}1  {с}{{\selectfont\char241}}1  {т}{{\selectfont\char242}}1  {у}{{\selectfont\char243}}1  {ф}{{\selectfont\char244}}1  {х}{{\selectfont\char245}}1  {ц}{{\selectfont\char246}}1  {ч}{{\selectfont\char247}}1  {ш}{{\selectfont\char248}}1  {щ}{{\selectfont\char249}}1  {ъ}{{\selectfont\char250}}1  {ы}{{\selectfont\char251}}1  {ь}{{\selectfont\char252}}1  {э}{{\selectfont\char253}}1  {ю}{{\selectfont\char254}}1  {я}{{\selectfont\char255}}1  {А}{{\selectfont\char192}}1  {Б}{{\selectfont\char193}}1  {В}{{\selectfont\char194}}1  {Г}{{\selectfont\char195}}1  {Д}{{\selectfont\char196}}1  {Е}{{\selectfont\char197}}1  {Ё}{{\"E}}1  {Ж}{{\selectfont\char198}}1  {З}{{\selectfont\char199}}1  {И}{{\selectfont\char200}}1  {Й}{{\selectfont\char201}}1  {К}{{\selectfont\char202}}1  {Л}{{\selectfont\char203}}1  {М}{{\selectfont\char204}}1  {Н}{{\selectfont\char205}}1  {О}{{\selectfont\char206}}1  {П}{{\selectfont\char207}}1  {Р}{{\selectfont\char208}}1  {С}{{\selectfont\char209}}1  {Т}{{\selectfont\char210}}1  {У}{{\selectfont\char211}}1  {Ф}{{\selectfont\char212}}1  {Х}{{\selectfont\char213}}1  {Ц}{{\selectfont\char214}}1  {Ч}{{\selectfont\char215}}1  {Ш}{{\selectfont\char216}}1  {Щ}{{\selectfont\char217}}1  {Ъ}{{\selectfont\char218}}1  {Ы}{{\selectfont\char219}}1  {Ь}{{\selectfont\char220}}1  {Э}{{\selectfont\char221}}1  {Ю}{{\selectfont\char222}}1  {Я}{{\selectfont\char223}}1}
+
+\newcommand\lstlistinginline[1]{{\lstlistingstyle\lstinline!#1!}}
+
+% =======================================================
+
+% Ссылки:
+\usepackage[pdftex, colorlinks=false, hidelinks, unicode=true]{hyperref}
+
+% Подсчёт числа страниц в документе: команда \ztotpages{}:
+\usepackage{zref-totpages}
+
+% Подсчёт числа картинок (figure) и таблиц в документе: команды \totalfigures{} и \totaltables{}:
+\usepackage[figure,table]{totalcount}
+
+% Новая страница для каждого нового section:
+\AddToHook{cmd/section/before}{\clearpage}
+
+% =======================================================
+
+% Стиль гост-а для biblatex -- https://github.com/odomanov/biblatex-gost
+% См. https://ctan.math.illinois.edu/macros/latex/contrib/biblatex-contrib/biblatex-gost/doc/biblatex-gost.pdf\textbf
+\usepackage[backend=biber, style=gost-numeric, language=auto, autolang=other]{biblatex}
+\usepackage{csquotes}
+
+% Сортировка: русскоязычные источники должны быть сверху списка источников:
+\DeclareSourcemap{
+    \maps[datatype=bibtex]{
+        \map{
+            \step[fieldsource=langid, match=russian, final]
+            \step[fieldset=presort, fieldvalue={a}]
+        }
+        \map{
+            \step[fieldsource=langid, notmatch=russian, final]
+            \step[fieldset=presort, fieldvalue={z}]
+        }
+    }
+}
+
+% =======================================================
+
+\usepackage{ifthen, mathtext, enumerate, float, makeidx}
+
+% =======================================================
+
+% Математика:
+\let\openbox\relax
+\usepackage{mathtools, cancel, physics, euscript, xfrac, amsmath, amsthm}
+
+% Подчёркивания:
+\usepackage[normalem]{ulem}
+
+% =======================================================
+
+\newtheorem{Th}{Теорема}
+\newtheorem{Lm}{Лемма}
+\newtheorem{Df}{Определение}
+\newtheorem{Ex}{Пример}
+\newtheorem{Rm}{Ремарка}
+\newtheorem{Alg}{Алгоритм}
+\newtheorem{Ax}{Аксиома}
+\newtheorem{Crl}{Следствие}
+\newtheorem{Prp}{Гипотеза}
+
+% =======================================================
+
+% Фигуры:
+\usepackage[tableposition=top, font=small, labelfont=bf]{caption}
+
+% нумерация рисунков и графиков:
+\usepackage[tableposition=top]{caption}
+\DeclareCaptionLabelSeparator{defffis}{~--~}
+\DeclareCaptionLabelFormat{gostfigure}{Рисунок #2}
+\DeclareCaptionLabelFormat{gosttable}{Таблица #2}
+\captionsetup[figure]{justification=centering, labelsep=defffis, format=plain, labelformat=gostfigure}
+\captionsetup[table]{justification=centering, labelsep=defffis, format=plain, singlelinecheck=false, labelformat=gosttable}
+
+% Для команды \captionof:
+\usepackage{capt-of}
+
+% Несколько приписок в одной фигуре:
+\usepackage{subcaption}
+
+\renewcommand{\thefigure}{\arabic{section}.\arabic{figure}}
+\renewcommand{\thesubfigure}{\asbuk{subfigure}}
+\renewcommand{\thechapter}{}
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{\arabic{section}.\arabic{subsection}}
+\renewcommand{\thesubsubsection}{\arabic{section}.\arabic{subsection}.\arabic{subsubsection}}
+\renewcommand{\theequation}{\arabic{section}.\arabic{equation}}
+
+% Сквозная нумерация рисунков:
+\counterwithout{figure}{chapter}
+% Сквозная нумерация таблиц:
+\counterwithout{table}{chapter}
+
+% Большие буквы в заголовке section-ов:
+% \usepackage{sectsty}
+% \usepackage{titlecaps}
+% \sectionfont{\MakeUppercase}
+
+% =======================================================
+
+% Оформление колонтитулов:
+\usepackage{fancyhdr}
+% \pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\normalsize\thepage}
+% \fancyheadoffset{0mm}
+% \fancyfootoffset{0mm}
+% \setlength{\headheight}{17pt}
+% \renewcommand{\headrulewidth}{0pt}
+% \renewcommand{\footrulewidth}{0pt}
+% \fancypagestyle{plain}{ 
+%     \fancyhf{}
+%     \rhead{\thepage}}
+
+% =======================================================
+
+% Псевдокод:
+\usepackage{algorithm}
+\usepackage[]{algpseudocode}
+\floatname{algorithm}{Алгоритм}
+\algrenewcommand{\algorithmiccomment}[1]{\quad// #1}
+\algnewcommand{\LineComment}[1]{\State \(\algorithmiccomment\) #1}
+% \algrenewcommand\algorithmicwhile{\textbf{До тех пока}}
+% \algrenewcommand\algorithmicdo{\textbf{выполнять}}
+% \algrenewcommand\algorithmicrepeat{\textbf{Повторять}}
+% \algrenewcommand\algorithmicuntil{\textbf{Пока выполняется}}
+% \algrenewcommand\algorithmicend{\textbf{Конец}}
+% \algrenewcommand\algorithmicif{\textbf{Если}}
+% \algrenewcommand\algorithmicelse{\textbf{иначе}}
+% \algrenewcommand\algorithmicthen{\textbf{тогда}}
+% \algrenewcommand\algorithmicfor{\textbf{Цикл}}
+% \algrenewcommand\algorithmicforall{\textbf{Выполнить для всех}}
+% \algrenewcommand\algorithmicfunction{\textbf{Функция}}
+% \algrenewcommand\algorithmicprocedure{\textbf{Процедура}}
+% \algrenewcommand\algorithmicloop{\textbf{Зациклить}}
+% \algrenewcommand\algorithmicrequire{\textbf{Условия:}}
+% \algrenewcommand\algorithmicensure{\textbf{Обеспечивающие условия:}}
+% \algrenewcommand\algorithmicreturn{\textbf{Возвратить}}
+% \algrenewtext{EndWhile}{\textbf{Конец цикла}}
+% \algrenewtext{EndLoop}{\textbf{Конец зацикливания}}
+% \algrenewtext{EndFor}{\textbf{Конец цикла}}
+% \algrenewtext{EndFunction}{\textbf{Конец функции}}
+% \algrenewtext{EndProcedure}{\textbf{Конец процедуры}}
+% \algrenewtext{EndIf}{\textbf{Конец условия}}
+% \algrenewtext{EndFor}{\textbf{Конец цикла}}
+% \algrenewtext{BeginAlgorithm}{\textbf{Начало алгоритма}}
+% \algrenewtext{EndAlgorithm}{\textbf{Конец алгоритма}}
+% \algrenewtext{ElsIf}{\textbf{иначе если }}
+
+% =======================================================
+
+% Запретить ненумерацию формул:
+\renewcommand{\nonumber}{}
+
+\makeatletter
+% Запретить переносы в названиях section:
+\renewcommand{\section}{\@startsection{section}{1}{0pt}%
+                                {-3.5ex plus -1ex minus -.2ex}%
+                                {2.3ex plus .2ex}%
+{\centering\hyphenpenalty=10000\normalfont\Large\bfseries}}
+
+% Стиль заголовков chapter и section:
+\usepackage{titlesec}
+\titleformat{\section}{\bfseries\scshape\centering\MakeUppercase}{\thesection}{1em}{}
+\titleformat{\chapter}{\scshape\centering\MakeUppercas}{
+\thechapter}{0pt}{\huge}
+% \titleformat{\chapter}{\vspace{-3cm}\centering\hyphenpenalty=10000\normalfont\huge\bfseries}{
+% \thechapter}{0pt}{\large}
+\makeatother
+
+% =======================================================
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{3}
+\makeindex
+
+% =======================================================
+% =======================================================
+% \newcounter{defcounter}
+% \setcounter{defcounter}{1}
+% \newcommand{\definintion}{\textbf{Определение \arabic{section}.\arabic{defcounter}. }\addtocounter{defcounter}{1}}
+% 
+% 
+% \newcounter{tabcounter}
+% \setcounter{tabcounter}{1}
+% \newcommand{\tabcaption}{Таблица \arabic{section}.\arabic{tabcounter} ~---~\vspace{0.4cm}\addtocounter{tabcounter}{1}}
+% 
+% \newcounter{piccounter}
+% \setcounter{piccounter}{1}
+% \newcommand{\picturedef}{Рис. \arabic{piccounter}   \addtocounter{piccounter}{1}}
+% 
+
+% \addto\captionsrussian{\renewcommand{\chaptername}{}}
+% 
+% 
+% =======================================================
+% =======================================================
+%=====================================================================================================================
+%=====================================================================================================================
+%=====================================================================================================================
+%=====================================================================================================================
+%=====================================================================================================================
+
+% Переменные для титульника:
+\makeatletter
+\newcommand*{\vkrInstitute}[1]{\gdef\@vkrInstitute{#1}}
+\newcommand*{\vkrDepartment}[1]{\gdef\@vkrDepartment{#1}}
+\newcommand*{\vkrProgram}[1]{\gdef\@vkrProgram{#1}}
+\newcommand*{\vkrGroup}[1]{\gdef\@vkrGroup{#1}}
+\newcommand*{\vkrProfile}[1]{\gdef\@vkrProfile{#1}}
+\newcommand*{\vkrDegree}[1]{\gdef\@vkrDegree{#1}}
+
+\newcommand*{\vkrTitle}[1]{\gdef\@vkrTitle{#1}}
+
+\newcommand*{\vkrAuthor}[1]{\gdef\@vkrAuthor{#1}}
+\newcommand*{\vkrSupervisor}[1]{\gdef\@vkrSupervisor{#1}}
+\newcommand*{\vkrReviewer}[1]{\gdef\@vkrReviewer{#1}}
+\newcommand*{\vkrConFirst}[1]{\gdef\@vkrConFirst{#1}}
+\newcommand*{\vkrConSecond}[1]{\gdef\@vkrConSecond{#1}}
+\newcommand*{\vkrHeadOfDepartment}[1]{\gdef\@vkrHeadOfDepartment{#1}}
+
+\newcommand*{\vkrYear}[1]{\gdef\@vkrYear{#1}}
+
+\def\maketitle{
+
+    \thispagestyle{empty}
+    
+    % Верхняя часть:
+    \begin{center}
+        \begin{minipage}{0.15\textwidth}
+            \includegraphics[scale=0.04]{mai.png}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.8\textwidth}
+            \raggedright
+            \begin{center}
+                \scriptsize
+                \noindent МИНИСТЕРСТВО НАУКИ И ВЫСШЕГО ОБРАЗОВАНИЯ \par \noindent РОССИЙСКОЙ ФЕДЕРАЦИИ \par
+                
+                \bigskip \noindent ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ БЮДЖЕТНОЕ ОБРАЗОВАТЕЛЬНОЕ \par \noindent УЧРЕЖДЕНИЕ ВЫСШЕГО ОБРАЗОВАНИЯ \par \noindent <<МОСКОВСКИЙ АВИАЦИОННЫЙ ИНСТИТУТ \par \noindent (национальный исследовательский университет)>>
+            \end{center}
+        \end{minipage}
+    \end{center}
+    \rule{\textwidth}{1.2pt}
+    \small
+    \noindent Институт (Филиал) \uline{\,\@vkrInstitute} Кафедра \underline{\,\@vkrDepartment} \par
+    \noindent Группа \underline{\,\@vkrGroup\,} Направление подготовки \uline{\,\@vkrProgram\hfill} \par
+    \noindent Профиль \uline{\,\@vkrProfile\hfill} \par
+    \noindent Квалификация \uline{\,\@vkrDegree \hfill}
+    
+    \vspace{0.4cm}
+    
+    % Средняя часть:
+    \begin{center}
+        \normalsize
+        РАЗДАТОЧНЫЙ МАТЕРИАЛ К \par
+        ВЫПУСКНОЙ КВАЛИФИКАЦИОННОЙ РАБОТЕ \par
+        БАКАЛАВРА \par
+    \end{center}
+    
+    \vspace{0.8cm}
+    
+    \small
+    
+    \noindent На тему: \uline{\@vkrTitle\hfill}
+    
+    \vspace{0.6cm}
+    
+    \noindent Автор ВКРБ 
+    {\renewcommand{\arraystretch}{0.5}
+    \begin{tabular}{p{0.67\textwidth}l}
+        \uline{\hfill \@vkrAuthor \hfill} & (\uline{\hspace{2cm}}) \\
+        \scriptsize{\hfill (фамилия, имя, отчество полностью) \hfill} 
+    \end{tabular}} \par
+    \noindent Руководитель 
+    {\renewcommand{\arraystretch}{0.5}
+    \begin{tabular}{p{0.66\textwidth}l}
+        \uline{\hfill \@vkrSupervisor \hfill} & (\uline{\hspace{2cm}}) \\
+        \scriptsize{\hfill (фамилия, имя, отчество полностью) \hfill}
+    \end{tabular}} \par
+    \noindent Консультант 
+    {\renewcommand{\arraystretch}{0.5}
+    \begin{tabular}{p{0.67\textwidth}l}
+        \uline{\hfill \@vkrConFirst \hfill} & (\uline{\hspace{2cm}}) \\
+        \scriptsize{\hfill (фамилия, имя, отчество полностью) \hfill} 
+    \end{tabular}} \par
+    \noindent Консультант 
+    {\renewcommand{\arraystretch}{0.5}
+    \begin{tabular}{p{0.67\textwidth}l}
+        \uline{\hfill \@vkrConSecond \hfill} & (\uline{\hspace{2cm}}) \\
+        \scriptsize{\hfill (фамилия, имя, отчество полностью) \hfill} 
+    \end{tabular}} \par
+    \noindent Рецензент 
+    {\renewcommand{\arraystretch}{0.5}
+    \begin{tabular}{p{0.7\textwidth}l}
+        \uline{\hfill \@vkrReviewer \hfill} & (\uline{\hspace{2cm}}) \\
+        \scriptsize{\hfill (фамилия, имя, отчество полностью) \hfill} 
+    \end{tabular}}
+    
+    \vspace{0.8cm}
+    
+    \noindent \textbf{К защите допустить}
+    
+    \vspace{0.2cm}
+    
+    
+    \noindent Заведующий кафедрой$\underset{\text{(№ каф.)}}{\underline{806}}$ 
+    {\renewcommand{\arraystretch}{0.5}
+    \begin{tabular}{p{0.48\textwidth}l}
+        \uline{\hfill \@vkrHeadOfDepartment \hfill} & (\uline{\hspace{2cm}}) \\
+        \scriptsize{\hfill (фамилия, имя, отчество полностью) \hfill} & 
+    \end{tabular}} \par
+    
+    \vspace{0.6cm}
+    
+    \noindent \uline{\hspace{1cm}} \uline{\hspace{4cm}} \@vkrYear г.
+    
+    % Нижняя часть:
+    \mbox{}
+    \vfill
+    
+    \begin{center}
+        Москва \@vkrYear
+    \end{center}
+    
+    \normalsize
+}
+\makeatother
+
+\newcommand{\vkrAbstract}{
+    \maketitle\newpage\chapter*{РЕФЕРАТ}
+}
+\newcommand{\vkrIntroduction}{
+    \newpage\tableofcontents\normalsize\newpage
+    \addcontentsline{toc}{chapter}{ВВЕДЕНИЕ}\chapter*{ВВЕДЕНИЕ}
+}
+\newcommand{\vkrMain}{
+    \newpage\addcontentsline{toc}{chapter}{ОСНОВНАЯ ЧАСТЬ}\begin{center}\Large\textbf{\vspace{8cm}\\ОСНОВНАЯ ЧАСТЬ }\end{center}\normalsize\newpage
+}
+\newcommand{\vkrConclution}{
+    \newpage\addcontentsline{toc}{chapter}{ЗАКЛЮЧЕНИЕ}\chapter*{ЗАКЛЮЧЕНИЕ}
+}
+\newcommand{\vkrEnd}{
+    \newpage
+    \printbibliography[heading=bibintoc, title={СПИСОК ИСПОЛЬЗУЕМЫХ ИСТОЧНИКОВ}]
+    % \addtocategory{SourcesGOST}{Iosilevich2014}
+    % \vspace{-2.0cm}
+    % \begingroup
+    % \let\clearpage\relax
+    % \printbibliography[category=SourcesGOST, title=""]
+    % \vspace{-1.5cm}
+    % \printbibliography[notcategory=SourcesGOST, title=""]
+    % \endgroup
+}
+\renewcommand{\bibname}{СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ}
+\newcommand{\vkrAttachment}{
+    \newpage\addcontentsline{toc}{chapter}{ПРИЛОЖЕНИЕ А}\chapter*{ПРИЛОЖЕНИЕ А}
+}
+\renewcommand{\contentsname}{СОДЕРЖАНИЕ\vspace{-1cm}}
+
+
+
+
+
+
